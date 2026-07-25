@@ -1,0 +1,8 @@
+{
+  "app": {
+    "title": "ICA",
+    "description": "Captura ciega de inventario",
+    "foundation": "La base de la aplicación está lista.",
+    "demoNotice": "Demostración local"
+  }
+}

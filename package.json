@@ -1,0 +1,46 @@
+{
+  "name": "ica-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "fsd": "depcruise --config dependency-cruiser.js src",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.101.4",
+    "antd": "5.29.3",
+    "i18next": "26.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-i18next": "17.0.11",
+    "react-router": "7.18.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@playwright/test": "1.62.0",
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "6.0.4",
+    "dependency-cruiser": "18.1.0",
+    "eslint": "10.8.0",
+    "globals": "latest",
+    "jsdom": "29.1.1",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "latest",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}
