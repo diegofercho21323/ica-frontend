@@ -1,9 +1,5 @@
-import type {
-  CostLeaderLineView,
-  DemoCredentials,
-  DemoSession,
-  OperatorV2LineView,
-} from './models'
+import type { CostLeaderLineView } from './leader-models'
+import type { DemoCredentials, DemoSession, OperatorV2LineView } from './models'
 
 export const demoCredentials: readonly (DemoCredentials & DemoSession)[] = [
   {
