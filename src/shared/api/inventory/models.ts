@@ -21,11 +21,7 @@ export type OperatorLineView = {
 
 export type OperatorV2LineView = OperatorLineView
 
-export type CostLeaderLineView = OperatorLineView & {
-  // Decimal JSON, exactly like `currentQuantity`: the authoritative reconciled
-  // quantity must stay an exact string, never an IEEE-754 double.
-  finalizedQuantity: string | null
-}
+// `CostLeaderLineView` deliberately does NOT live here: see `leader-models.ts`.
 
 export type InventoryScope = {
   id: string
