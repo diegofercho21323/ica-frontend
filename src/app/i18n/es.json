@@ -3,6 +3,17 @@
     "title": "ICA",
     "description": "Captura ciega de inventario",
     "foundation": "La base de la aplicación está lista.",
-    "demoNotice": "Demostración local"
+    "demoNotice": "Demostración local",
+    "login": "Iniciar sesión",
+    "dashboard": "Panel principal",
+    "warehouses": "Bodegas",
+    "capture": "Captura",
+    "navPrimary": "Navegación principal",
+    "closeMenu": "Cerrar menú",
+    "loadingPlaceholder": "Cargando contenido de demostración",
+    "shellPlaceholder": "Esta pantalla estará disponible en el siguiente bloque MVP.",
+    "emptyWarehouses": "No hay bodegas disponibles para esta demo.",
+    "capturePlaceholder": "La captura estará disponible en el siguiente bloque MVP.",
+    "dashboardPlaceholder": "Tus asignaciones aparecerán aquí cuando estén listas."
   }
 }
