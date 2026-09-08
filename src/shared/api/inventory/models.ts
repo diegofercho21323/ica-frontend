@@ -40,3 +40,41 @@ export type CaptureChange = {
   state: OperatorLineView['state']
 }
 export type DemoPreset = 'open-count' | 'finalized' | 'retry' | 'blind-v2'
+
+export type Receipt = {
+  key: string
+  status: 'SUCCEEDED' | 'FAILED'
+  payload_hash: string
+  erp_reference: string | null
+}
+
+export type AttemptVersion = {
+  v: number
+  lockedAt: string
+  lineCount: number
+  submission?: Receipt
+}
+
+// Review completeness exposes identity+unit only for pending lines: quantities
+// and ERP data must never leak through the pending projection.
+export type ReviewView = {
+  attemptId: string
+  counted: OperatorLineView[]
+  pending: Pick<OperatorLineView, 'code' | 'name' | 'unit'>[]
+}
+
+export type AttemptRecord = {
+  attempt: Attempt
+  lines: Map<string, OperatorLineView>
+  versions: AttemptVersion[]
+  locked: boolean
+}
+
+export type FinalizeOptions = {
+  confirm_uncounted?: boolean
+}
+
+export type RecountInput = {
+  lineCodes: string[]
+  assignee: string
+}

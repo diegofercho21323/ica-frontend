@@ -13,6 +13,9 @@ export const disabledHttpInventoryApi: InventoryApiPort = {
   startAttempt: async () => disabled(),
   getOperatorLines: async () => disabled(),
   saveBatch: async () => disabled(),
+  getReview: async () => disabled(),
+  getHistory: async () => disabled(),
+  createRecount: async () => disabled(),
   finalize: async () => disabled(),
   submit: async (_attemptId: string, _idempotencyKey: string) => {
     void _attemptId
