@@ -14,7 +14,11 @@
     "shellPlaceholder": "Esta pantalla estará disponible en el siguiente bloque MVP.",
     "emptyWarehouses": "No hay bodegas disponibles para esta demo.",
     "capturePlaceholder": "La captura estará disponible en el siguiente bloque MVP.",
-    "dashboardPlaceholder": "Tus asignaciones aparecerán aquí cuando estén listas."
+    "dashboardPlaceholder": "Tus asignaciones aparecerán aquí cuando estén listas.",
+    "kpiTotal": "Total de SKUs",
+    "kpiCounted": "Contadas",
+    "kpiPending": "Pendientes",
+    "kpiProgress": "Avance"
   },
   "access": {
     "title": "Iniciar sesión",
