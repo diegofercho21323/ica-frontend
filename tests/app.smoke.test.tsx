@@ -96,12 +96,13 @@ describe('application shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Bodegas' }),
     ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      i18n.t('app.emptyWarehouses'),
-    )
-    expect(i18n.t('app.emptyWarehouses')).toBe(
-      'No hay bodegas disponibles para esta demo.',
-    )
+    expect(
+      await screen.findByText(i18n.t('app.warehousesCount', { count: 3 })),
+    ).toBeVisible()
+    expect(await screen.findByText('Bodega Centro')).toBeVisible()
+    expect(screen.getByText('Bodega Norte')).toBeVisible()
+    expect(screen.getByText('Bodega Sur')).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('activates the Captura link with Space and shows exact capturePlaceholder via t()', async () => {
@@ -161,9 +162,13 @@ describe('application shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Bodegas' }),
     ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      i18n.t('app.emptyWarehouses'),
-    )
+    expect(
+      await screen.findByText(i18n.t('app.warehousesCount', { count: 3 })),
+    ).toBeVisible()
+    expect(await screen.findByText('Bodega Centro')).toBeVisible()
+    expect(screen.getByText('Bodega Norte')).toBeVisible()
+    expect(screen.getByText('Bodega Sur')).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
