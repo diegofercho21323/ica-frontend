@@ -105,7 +105,7 @@ describe('application shell', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('activates the Captura link with Space and shows exact capturePlaceholder via t()', async () => {
+  it('activates the Captura link with Space and renders the blind capture table via t()', async () => {
     const user = userEvent.setup()
     render(<App />)
     await loginAs(user, 'lider', 'lider')
@@ -116,14 +116,17 @@ describe('application shell', () => {
 
     expect(window.location.pathname).toBe('/capture')
     expect(
-      await screen.findByRole('heading', { name: 'Captura' }),
+      await screen.findByRole('heading', { name: i18n.t('capture.title') }),
     ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      i18n.t('app.capturePlaceholder'),
-    )
-    expect(i18n.t('app.capturePlaceholder')).toBe(
-      'La captura estará disponible en el siguiente bloque MVP.',
-    )
+    expect(i18n.t('capture.title')).toBe('Captura ciega')
+    expect(await screen.findByText('SKU-001')).toBeVisible()
+    expect(
+      screen.getByRole('textbox', {
+        name: `${i18n.t('capture.quantity')} SKU-001`,
+      }),
+    ).toHaveValue('')
+    // Blind: system quantities stay hidden while rows are NOT_COUNTED.
+    expect(screen.queryByText('10.10')).not.toBeInTheDocument()
   })
 
   it('closes the mobile drawer on link activation and returns focus to the menu trigger', async () => {
