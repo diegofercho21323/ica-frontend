@@ -1,12 +1,56 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import type { UserEvent } from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../src/app/App'
 import { i18n } from '../src/app/i18n/config'
 import { theme } from '../src/app/theme'
 import { tokens } from '../src/app/tokens'
 
+vi.mock('idb-keyval', () => {
+  const store = new Map<string, unknown>()
+  return {
+    createStore: vi.fn(() => ({})),
+    get: vi.fn((key: string) => Promise.resolve(store.get(key))),
+    set: vi.fn((key: string, value: unknown) => {
+      store.set(key, value)
+      return Promise.resolve()
+    }),
+    del: vi.fn((key: string) => {
+      store.delete(key)
+      return Promise.resolve()
+    }),
+    clear: vi.fn(() => {
+      store.clear()
+      return Promise.resolve()
+    }),
+  }
+})
+
+import { clear } from 'idb-keyval'
+
+async function loginAs(user: UserEvent, username: string, password: string) {
+  expect(
+    await screen.findByRole('heading', { name: i18n.t('access.title') }),
+  ).toBeVisible()
+  await user.click(screen.getByLabelText(i18n.t('access.username')))
+  await user.keyboard(username)
+  await user.click(screen.getByLabelText(i18n.t('access.password')))
+  await user.keyboard(`${password}{Enter}`)
+  // LoginPage redirects to the guard's `from` target, which varies with the
+  // shared router history — only assert we left /login authenticated.
+  await waitFor(() => {
+    expect(window.location.pathname).not.toBe('/login')
+  })
+  expect(
+    screen.getByRole('button', { name: i18n.t('access.logout') }),
+  ).toBeVisible()
+}
+
 describe('visual shell base', () => {
+  beforeEach(async () => {
+    await clear()
+  })
   it('resolves Datup light tokens from ThemeConfig with no hardcoded brand in shell', () => {
     expect(tokens.colorAction).toBe('#6600FF')
     expect(tokens.radiusControl).toBe(12)
@@ -44,6 +88,7 @@ describe('visual shell base', () => {
   it('marks exactly one active route with selected state and aria-current on the rail', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await loginAs(user, 'operador', 'operador')
     const navigation = await screen.findByRole('navigation', {
       name: i18n.t('app.title'),
     })
@@ -57,6 +102,7 @@ describe('visual shell base', () => {
   it('structures the drawer with title, nav group, and labeled close while keeping close-on-navigate and focus return', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await loginAs(user, 'operador', 'operador')
     const trigger = screen.getByRole('button', { name: i18n.t('app.title') })
     await user.click(trigger)
     const drawer = await screen.findByRole('dialog', {

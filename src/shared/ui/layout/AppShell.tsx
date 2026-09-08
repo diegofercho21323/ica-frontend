@@ -1,6 +1,6 @@
 import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { Link, Outlet, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ function pathnameToKey(pathname: string): string {
   return 'login'
 }
 
-export function AppShell() {
+export function AppShell({ headerActions }: { headerActions?: ReactNode }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   // Single menu per viewport: rail owns ≥lg, drawer owns <lg.
@@ -96,6 +96,7 @@ export function AppShell() {
           </Button>
         )}
         <Typography.Text>{t('app.title')}</Typography.Text>
+        {headerActions ? <span className="ml-4">{headerActions}</span> : null}
       </Layout.Header>
       <Drawer
         open={open}

@@ -5,18 +5,27 @@ import {
   BodegasPage,
   CapturePlaceholderPage,
 } from '../pages/screens'
+import { LogoutButton } from '../features/access/LogoutButton'
+import { RequireAuth } from '../features/access/RequireAuth'
 import { AppShell } from '../shared/ui/layout/AppShell'
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    Component: AppShell,
+    element: (
+      <AppShell headerActions={<LogoutButton />} />
+    ),
     children: [
       { index: true, Component: LoginPage },
       { path: 'login', Component: LoginPage },
-      { path: 'dashboard', Component: DashboardPage },
-      { path: 'bodegas', Component: BodegasPage },
-      { path: 'capture', Component: CapturePlaceholderPage },
+      {
+        Component: RequireAuth,
+        children: [
+          { path: 'dashboard', Component: DashboardPage },
+          { path: 'bodegas', Component: BodegasPage },
+          { path: 'capture', Component: CapturePlaceholderPage },
+        ],
+      },
     ],
   },
 ])

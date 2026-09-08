@@ -15,5 +15,15 @@
     "emptyWarehouses": "No hay bodegas disponibles para esta demo.",
     "capturePlaceholder": "La captura estará disponible en el siguiente bloque MVP.",
     "dashboardPlaceholder": "Tus asignaciones aparecerán aquí cuando estén listas."
+  },
+  "access": {
+    "title": "Iniciar sesión",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "submit": "Entrar",
+    "usernameRequired": "El usuario es obligatorio",
+    "passwordRequired": "La contraseña es obligatoria",
+    "invalid": "Credenciales inválidas. Verifique el usuario y la contraseña.",
+    "logout": "Cerrar sesión"
   }
 }
