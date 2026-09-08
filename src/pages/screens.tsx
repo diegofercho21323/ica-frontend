@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router'
 import { LoginForm } from '../features/access/LoginForm'
 import { useSession } from '../features/access/SessionContext'
+import { BodegasList } from '../features/bodegas/BodegasList'
 import { DashboardKpis } from '../features/dashboard/DashboardKpis'
 
 function PlaceholderPage({
@@ -44,13 +45,7 @@ export function DashboardPage() {
 }
 
 export function BodegasPage() {
-  const { t } = useTranslation()
-  return (
-    <PlaceholderPage
-      message={t('app.emptyWarehouses')}
-      title={t('app.warehouses')}
-    />
-  )
+  return <BodegasList />
 }
 
 export function CapturePlaceholderPage() {

@@ -1,4 +1,4 @@
-import { demoCredentials, operatorV2Fixture } from './fixtures'
+import { demoCredentials, operatorV2Fixture, scopeFixtures } from './fixtures'
 import type { InventoryApiPort } from './port'
 import type { DemoCredentials, DemoSession } from './models'
 
@@ -22,7 +22,7 @@ export const mockInventoryApi: InventoryApiPort = {
     }
   },
   async listScopes() {
-    return []
+    return scopeFixtures.map((scope) => ({ ...scope }))
   },
   async startAttempt() {
     return unsupported('Starting an attempt')

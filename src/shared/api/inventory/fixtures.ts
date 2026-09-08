@@ -1,5 +1,16 @@
 import type { CostLeaderLineView } from './leader-models'
-import type { DemoCredentials, DemoSession, OperatorV2LineView } from './models'
+import type {
+  DemoCredentials,
+  DemoSession,
+  InventoryScope,
+  OperatorV2LineView,
+} from './models'
+
+export const scopeFixtures: readonly InventoryScope[] = [
+  { id: 'scope-centro', name: 'Bodega Centro' },
+  { id: 'scope-norte', name: 'Bodega Norte' },
+  { id: 'scope-sur', name: 'Bodega Sur' },
+]
 
 export const demoCredentials: readonly (DemoCredentials & DemoSession)[] = [
   {
