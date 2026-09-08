@@ -1,41 +1,88 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import type { UserEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import { vi } from 'vitest'
 import { App } from '../src/app/App'
 import { i18n } from '../src/app/i18n/config'
 import { Providers } from '../src/app/providers'
 import { router } from '../src/app/router'
 
+vi.mock('idb-keyval', () => {
+  const store = new Map<string, unknown>()
+  return {
+    createStore: vi.fn(() => ({})),
+    get: vi.fn((key: string) => Promise.resolve(store.get(key))),
+    set: vi.fn((key: string, value: unknown) => {
+      store.set(key, value)
+      return Promise.resolve()
+    }),
+    del: vi.fn((key: string) => {
+      store.delete(key)
+      return Promise.resolve()
+    }),
+    clear: vi.fn(() => {
+      store.clear()
+      return Promise.resolve()
+    }),
+  }
+})
+
+import { clear } from 'idb-keyval'
+
+async function loginAs(user: UserEvent, username: string, password: string) {
+  expect(
+    await screen.findByRole('heading', { name: i18n.t('access.title') }),
+  ).toBeVisible()
+  await user.click(screen.getByLabelText(i18n.t('access.username')))
+  await user.keyboard(username)
+  await user.click(screen.getByLabelText(i18n.t('access.password')))
+  await user.keyboard(`${password}{Enter}`)
+  // LoginPage redirects to the guard's `from` target, which varies with the
+  // shared router history — only assert we left /login authenticated.
+  await waitFor(() => {
+    expect(window.location.pathname).not.toBe('/login')
+  })
+  expect(
+    screen.getByRole('button', { name: i18n.t('access.logout') }),
+  ).toBeVisible()
+}
+
 describe('application shell', () => {
-  it('navigates via click and Enter with observed URL/heading and exact t() placeholders', async () => {
+  beforeEach(async () => {
+    await clear()
+  })
+
+  it('logs in via keyboard and navigates with observed URL/heading and exact t() placeholders', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    const navigation = await screen.findByRole('navigation', { name: 'ICA' })
-    expect(screen.getByRole('main')).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: 'Iniciar sesión' }),
+      await screen.findByRole('heading', { name: i18n.t('access.title') }),
     ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      i18n.t('app.shellPlaceholder'),
+    await loginAs(user, 'operador', 'operador')
+    await user.click(
+      within(await screen.findByRole('navigation', { name: 'ICA' })).getByRole('link', {
+        name: 'Panel principal',
+      }),
     )
-    expect(i18n.t('app.shellPlaceholder')).toBe(
-      'Esta pantalla estará disponible en el siguiente bloque MVP.',
+    expect(
+      await screen.findByRole('heading', { name: 'Panel principal' }),
+    ).toBeVisible()
+    expect(i18n.t('app.dashboardPlaceholder')).toBe(
+      'Tus asignaciones aparecerán aquí cuando estén listas.',
     )
 
-    await user.click(
-      within(navigation).getByRole('link', { name: 'Panel principal' }),
-    )
+    const navigation = await screen.findByRole('navigation', { name: 'ICA' })
+    expect(screen.getByRole('main')).toBeVisible()
+
     expect(window.location.pathname).toBe('/dashboard')
     expect(
       await screen.findByRole('heading', { name: 'Panel principal' }),
     ).toBeVisible()
     expect(screen.getByRole('alert')).toHaveTextContent(
       i18n.t('app.dashboardPlaceholder'),
-    )
-    expect(i18n.t('app.dashboardPlaceholder')).toBe(
-      'Tus asignaciones aparecerán aquí cuando estén listas.',
     )
 
     within(navigation).getByRole('link', { name: 'Bodegas' }).focus()
@@ -55,6 +102,7 @@ describe('application shell', () => {
   it('activates the Captura link with Space and shows exact capturePlaceholder via t()', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await loginAs(user, 'lider', 'lider')
 
     const navigation = await screen.findByRole('navigation', { name: 'ICA' })
     within(navigation).getByRole('link', { name: 'Captura' }).focus()
@@ -75,6 +123,7 @@ describe('application shell', () => {
   it('closes the mobile drawer on link activation and returns focus to the menu trigger', async () => {
     const user = userEvent.setup()
     render(<App />)
+    await loginAs(user, 'admin', 'admin')
 
     const trigger = screen.getByRole('button', { name: 'ICA' })
     await user.click(trigger)
@@ -98,6 +147,7 @@ describe('application shell', () => {
     const user = userEvent.setup()
     window.innerWidth = 1280
     render(<App />)
+    await loginAs(user, 'operador', 'operador')
 
     const navigation = await screen.findByRole('navigation', { name: 'ICA' })
     await user.click(within(navigation).getByRole('link', { name: 'Bodegas' }))
@@ -137,22 +187,22 @@ describe('application shell', () => {
     expect(within(drawer).getByText(i18n.t('app.title'))).toBeVisible()
   })
 
-  it.each([
-    {
-      path: '/bodegas',
-      heading: 'Bodegas',
-      key: 'app.emptyWarehouses',
-      copy: 'No hay bodegas disponibles para esta demo.',
-    },
-    {
-      path: '/capture',
-      heading: 'Captura',
-      key: 'app.capturePlaceholder',
-      copy: 'La captura estará disponible en el siguiente bloque MVP.',
-    },
-  ])(
-    'renders direct URL entry at $path with placeholder and no guard redirect',
-    async ({ path, heading, key, copy }) => {
+  it('logs out back to /login with the session cleared', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await loginAs(user, 'operador', 'operador')
+
+    await user.click(screen.getByRole('button', { name: i18n.t('access.logout') }))
+
+    expect(
+      await screen.findByRole('heading', { name: i18n.t('access.title') }),
+    ).toBeVisible()
+    expect(window.location.pathname).toBe('/login')
+  })
+
+  it.each([{ path: '/dashboard' }, { path: '/bodegas' }, { path: '/capture' }])(
+    'redirects anonymous direct URL entry at $path to /login',
+    async ({ path }) => {
       const directRouter = createMemoryRouter(router.routes, {
         initialEntries: [path],
       })
@@ -162,12 +212,13 @@ describe('application shell', () => {
         </Providers>,
       )
 
-      expect(
-        await screen.findByRole('heading', { name: heading }),
-      ).toBeVisible()
       expect(directRouter.state.location.pathname).toBe(path)
-      expect(screen.getByRole('alert')).toHaveTextContent(i18n.t(key))
-      expect(i18n.t(key)).toBe(copy)
+      await waitFor(() => {
+        expect(directRouter.state.location.pathname).toBe('/login')
+      })
+      expect(
+        await screen.findByRole('heading', { name: i18n.t('access.title') }),
+      ).toBeVisible()
     },
   )
 })

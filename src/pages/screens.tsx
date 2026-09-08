@@ -1,5 +1,8 @@
 import { Alert, Card, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
+import { Navigate, useLocation } from 'react-router'
+import { LoginForm } from '../features/access/LoginForm'
+import { useSession } from '../features/access/SessionContext'
 
 function PlaceholderPage({
   title,
@@ -19,13 +22,14 @@ function PlaceholderPage({
 }
 
 export function LoginPage() {
-  const { t } = useTranslation()
-  return (
-    <PlaceholderPage
-      message={t('app.shellPlaceholder')}
-      title={t('app.login')}
-    />
-  )
+  const { session, status } = useSession()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from
+  const target = from?.startsWith('/') === true ? from : '/dashboard'
+
+  if (status === 'loading') return null
+  if (session) return <Navigate to={target} replace />
+  return <LoginForm />
 }
 
 export function DashboardPage() {
