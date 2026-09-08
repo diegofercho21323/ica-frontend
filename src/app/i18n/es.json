@@ -15,7 +15,6 @@
     "emptyWarehouses": "No hay bodegas disponibles para esta demo.",
     "warehousesCount": "{{count}} bodegas",
     "warehousesError": "No se pudieron cargar las bodegas.",
-    "capturePlaceholder": "La captura estará disponible en el siguiente bloque MVP.",
     "dashboardPlaceholder": "Tus asignaciones aparecerán aquí cuando estén listas.",
     "kpiTotal": "Total de SKUs",
     "kpiCounted": "Contadas",
@@ -31,5 +30,27 @@
     "passwordRequired": "La contraseña es obligatoria",
     "invalid": "Credenciales inválidas. Verifique el usuario y la contraseña.",
     "logout": "Cerrar sesión"
+  },
+  "capture": {
+    "title": "Captura ciega",
+    "sku": "SKU",
+    "description": "Descripción",
+    "quantity": "Cantidad",
+    "state": "Estado",
+    "systemQuantity": "Existencia del sistema",
+    "hidden": "Oculta",
+    "save": "Guardar captura",
+    "saving": "Guardando…",
+    "retry": "Reintentar",
+    "saveSuccess": "Captura guardada correctamente.",
+    "saveError": "No se pudo guardar la captura. Reintente.",
+    "invalidQuantity": "Cantidad inválida. Use hasta 6 decimales.",
+    "quantityRequired": "La cantidad es obligatoria para filas contadas.",
+    "states": {
+      "counted": "Contada",
+      "countedZero": "Contada en cero",
+      "notFound": "No encontrada",
+      "notCounted": "Sin contar"
+    }
   }
 }

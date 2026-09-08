@@ -3,7 +3,7 @@ import {
   LoginPage,
   DashboardPage,
   BodegasPage,
-  CapturePlaceholderPage,
+  CapturePage,
 } from '../pages/screens'
 import { LogoutButton } from '../features/access/LogoutButton'
 import { RequireAuth } from '../features/access/RequireAuth'
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
         children: [
           { path: 'dashboard', Component: DashboardPage },
           { path: 'bodegas', Component: BodegasPage },
-          { path: 'capture', Component: CapturePlaceholderPage },
+          { path: 'capture', Component: CapturePage },
         ],
       },
     ],

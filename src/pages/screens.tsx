@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router'
 import { LoginForm } from '../features/access/LoginForm'
 import { useSession } from '../features/access/SessionContext'
 import { BodegasList } from '../features/bodegas/BodegasList'
+import { CaptureTable } from '../features/capture/CaptureTable'
 import { DashboardKpis } from '../features/dashboard/DashboardKpis'
 
 function PlaceholderPage({
@@ -48,14 +49,10 @@ export function BodegasPage() {
   return <BodegasList />
 }
 
-export function CapturePlaceholderPage() {
-  const { t } = useTranslation()
+export function CapturePage() {
   return (
     <Card>
-      <PlaceholderPage
-        message={t('app.capturePlaceholder')}
-        title={t('app.capture')}
-      />
+      <CaptureTable />
     </Card>
   )
 }
