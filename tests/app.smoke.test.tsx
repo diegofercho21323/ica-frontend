@@ -70,9 +70,10 @@ describe('application shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Panel principal' }),
     ).toBeVisible()
-    expect(i18n.t('app.dashboardPlaceholder')).toBe(
-      'Tus asignaciones aparecerán aquí cuando estén listas.',
-    )
+    expect(await screen.findByText(i18n.t('app.kpiTotal'))).toBeVisible()
+    expect(screen.getByText(i18n.t('app.kpiCounted'))).toBeVisible()
+    expect(screen.getByText(i18n.t('app.kpiPending'))).toBeVisible()
+    expect(screen.getByText(i18n.t('app.kpiProgress'))).toBeVisible()
 
     const navigation = await screen.findByRole('navigation', { name: 'ICA' })
     expect(screen.getByRole('main')).toBeVisible()
@@ -81,7 +82,11 @@ describe('application shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Panel principal' }),
     ).toBeVisible()
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(await screen.findByText('5')).toBeVisible()
+    expect(screen.getByText('3')).toBeVisible()
+    expect(screen.getByText('2')).toBeVisible()
+    expect(screen.getByText('60')).toBeVisible()
+    expect(document.body.textContent).not.toContain(
       i18n.t('app.dashboardPlaceholder'),
     )
 

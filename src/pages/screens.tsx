@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router'
 import { LoginForm } from '../features/access/LoginForm'
 import { useSession } from '../features/access/SessionContext'
+import { DashboardKpis } from '../features/dashboard/DashboardKpis'
 
 function PlaceholderPage({
   title,
@@ -35,10 +36,10 @@ export function LoginPage() {
 export function DashboardPage() {
   const { t } = useTranslation()
   return (
-    <PlaceholderPage
-      message={t('app.dashboardPlaceholder')}
-      title={t('app.dashboard')}
-    />
+    <section className="flex flex-col gap-4 pt-2">
+      <Typography.Title>{t('app.dashboard')}</Typography.Title>
+      <DashboardKpis />
+    </section>
   )
 }
 
