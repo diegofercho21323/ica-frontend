@@ -24,6 +24,10 @@ vi.mock('idb-keyval', () => {
 
 import { clear } from 'idb-keyval'
 import { demoPersistence } from '../../shared/lib/persistence'
+import {
+  authTokenStorage,
+  isAuthTokenExpired,
+} from '../../shared/lib/auth-token'
 import { SessionProvider, useSession } from './SessionContext'
 
 function setup() {
@@ -110,5 +114,43 @@ describe('SessionContext', () => {
       expect(result.current.status).toBe('ready')
     })
     expect(result.current.session).toBeNull()
+  })
+
+  it('clears a persisted token on logout and never stores passwords', async () => {
+    await authTokenStorage.save({
+      access_token: 'tok-123',
+      token_type: 'bearer',
+      expiresAt: Date.now() + 60_000,
+    })
+    const { result } = setup()
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+
+    await result.current.login({ username: 'lider', password: 'lider' })
+    await result.current.logout()
+
+    await waitFor(() => {
+      expect(result.current.session).toBeNull()
+    })
+    expect(await authTokenStorage.load()).toBeNull()
+  })
+
+  it('purges an expired token on boot and stays anonymous', async () => {
+    await authTokenStorage.save({
+      access_token: 'stale',
+      token_type: 'bearer',
+      expiresAt: Date.now() - 1,
+    })
+    expect(
+      isAuthTokenExpired(await authTokenStorage.load()),
+    ).toBe(true)
+
+    const { result } = setup()
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready')
+    })
+    expect(result.current.session).toBeNull()
+    expect(await authTokenStorage.load()).toBeNull()
   })
 })
