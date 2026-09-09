@@ -13,7 +13,13 @@ function pathnameToKey(pathname: string): string {
   return 'login'
 }
 
-export function AppShell({ headerActions }: { headerActions?: ReactNode }) {
+export function AppShell({
+  headerActions,
+  authenticated = false,
+}: {
+  headerActions?: ReactNode
+  authenticated?: boolean
+}) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   // Single menu per viewport: rail owns ≥lg, drawer owns <lg.
@@ -53,26 +59,34 @@ export function AppShell({ headerActions }: { headerActions?: ReactNode }) {
       {label}
     </Link>
   )
+  // Post-login navigation: without a session only the brand and the login
+  // entry are visible. The session itself lives in features/access, which
+  // shared/ must not import (FSD), so the app shell receives it as a prop
+  // from an app-layer wrapper (see src/app/router.tsx).
+  const authedItems = [
+    { key: 'login', label: navLink('login', '/login', t('app.login')) },
+    {
+      key: 'dashboard',
+      label: navLink('dashboard', '/dashboard', t('app.dashboard')),
+    },
+    {
+      key: 'warehouses',
+      label: navLink('warehouses', '/bodegas', t('app.warehouses')),
+    },
+    {
+      key: 'capture',
+      label: navLink('capture', '/capture', t('app.capture')),
+    },
+  ]
+  const anonItems = [
+    { key: 'login', label: navLink('login', '/login', t('app.login')) },
+  ]
   const navigation = (onNavigate?: () => void) => (
     <Menu
       mode="inline"
       selectedKeys={[activeKey]}
       onClick={onNavigate}
-      items={[
-        { key: 'login', label: navLink('login', '/login', t('app.login')) },
-        {
-          key: 'dashboard',
-          label: navLink('dashboard', '/dashboard', t('app.dashboard')),
-        },
-        {
-          key: 'warehouses',
-          label: navLink('warehouses', '/bodegas', t('app.warehouses')),
-        },
-        {
-          key: 'capture',
-          label: navLink('capture', '/capture', t('app.capture')),
-        },
-      ]}
+      items={authenticated ? authedItems : anonItems}
     />
   )
   return (

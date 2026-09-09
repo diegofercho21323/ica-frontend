@@ -4,17 +4,16 @@ import {
   DashboardPage,
   BodegasPage,
   CapturePage,
+  AttemptCapturePage,
+  ReviewPage,
 } from '../pages/screens'
-import { LogoutButton } from '../features/access/LogoutButton'
 import { RequireAuth } from '../features/access/RequireAuth'
-import { AppShell } from '../shared/ui/layout/AppShell'
+import { SessionAwareShell } from './SessionAwareShell'
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: (
-      <AppShell headerActions={<LogoutButton />} />
-    ),
+    element: <SessionAwareShell />,
     children: [
       { index: true, Component: LoginPage },
       { path: 'login', Component: LoginPage },
@@ -24,6 +23,8 @@ export const router = createBrowserRouter([
           { path: 'dashboard', Component: DashboardPage },
           { path: 'bodegas', Component: BodegasPage },
           { path: 'capture', Component: CapturePage },
+          { path: 'capture/:attemptId', Component: AttemptCapturePage },
+          { path: 'attempts/:id/review', Component: ReviewPage },
         ],
       },
     ],
