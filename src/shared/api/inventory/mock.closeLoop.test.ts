@@ -41,7 +41,7 @@ describe('mock close-loop contract (PR1)', () => {
     expect(version.v).toBe(1)
 
     const failure = await mockInventoryApi
-      .saveBatch('locked-key', [
+      .saveBatch(attempt.id, 'locked-key', [
         { lineCode: 'SKU-001', quantity: '1', state: 'COUNTED' },
       ])
       .catch((error: unknown) => error)
@@ -60,7 +60,7 @@ describe('mock close-loop contract (PR1)', () => {
 
   it('submit reuses the key on a different payload only via 409 + replacement', async () => {
     const first = await attemptOf('scope-centro')
-    await mockInventoryApi.saveBatch('cap-1', [
+    await mockInventoryApi.saveBatch(first.id, 'cap-1', [
       { lineCode: 'SKU-001', quantity: '5', state: 'COUNTED' },
     ])
     await mockInventoryApi.finalize(first.id, { confirm_uncounted: true })
