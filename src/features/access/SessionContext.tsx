@@ -7,8 +7,9 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { mockInventoryApi } from '../../shared/api/inventory/mock'
+import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import type { DemoCredentials, DemoSession } from '../../shared/api/inventory/models'
+import type { InventoryApiPort } from '../../shared/api/inventory/port'
 import { demoPersistence } from '../../shared/lib/persistence'
 import { parseDemoSession } from './parseDemoSession'
 
@@ -23,7 +24,12 @@ export type SessionValue = {
 
 const SessionContext = createContext<SessionValue | null>(null)
 
-export function SessionProvider({ children }: PropsWithChildren) {
+export function SessionProvider({
+  api,
+  children,
+}: PropsWithChildren<{ api?: InventoryApiPort }>) {
+  const contextApi = useInventoryApi()
+  const port = api ?? contextApi
   const [session, setSession] = useState<DemoSession | null>(null)
   const [status, setStatus] = useState<SessionStatus>('loading')
 
@@ -45,11 +51,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
-  const login = useCallback(async (credentials: DemoCredentials) => {
-    const next = await mockInventoryApi.loginDemo(credentials)
-    await demoPersistence.saveDemoSession(next)
-    setSession(next)
-  }, [])
+  const login = useCallback(
+    async (credentials: DemoCredentials) => {
+      const next = await port.loginDemo(credentials)
+      await demoPersistence.saveDemoSession(next)
+      setSession(next)
+    },
+    [port],
+  )
 
   const logout = useCallback(async () => {
     await demoPersistence.clearDemoSession()
