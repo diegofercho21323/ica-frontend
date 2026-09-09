@@ -53,8 +53,12 @@ function Providers({ children }: PropsWithChildren) {
   )
 }
 
-function renderTable() {
-  return render(<CaptureTable />, { wrapper: Providers })
+function renderTable(attemptId: string) {
+  return render(<CaptureTable attemptId={attemptId} />, { wrapper: Providers })
+}
+
+async function freshAttempt() {
+  return mockInventoryApi.startAttempt('scope-centro', 'guided')
 }
 
 async function selectState(code: string, optionText: string) {
@@ -95,7 +99,8 @@ describe('CaptureTable', () => {
   })
 
   it('renders operator lines blind with empty inputs defaulting to NOT_COUNTED', async () => {
-    renderTable()
+    const attempt = await freshAttempt()
+    renderTable(attempt.id)
 
     expect(await screen.findByText('SKU-001')).toBeVisible()
     expect(screen.getByText('SKU-002')).toBeVisible()
@@ -107,7 +112,8 @@ describe('CaptureTable', () => {
   })
 
   it('hides currentQuantity for NOT_COUNTED rows and reveals it once counted', async () => {
-    renderTable()
+    const attempt = await freshAttempt()
+    renderTable(attempt.id)
     await screen.findByText('SKU-002')
 
     expect(screen.queryByText('10.10')).not.toBeInTheDocument()
@@ -118,11 +124,12 @@ describe('CaptureTable', () => {
   })
 
   it('shows an inline error for invalid input and excludes the row from the batch', async () => {
+    const attempt = await freshAttempt()
     const saveBatch = vi
       .spyOn(mockInventoryApi, 'saveBatch')
       .mockResolvedValue(undefined)
     const user = userEvent.setup()
-    renderTable()
+    renderTable(attempt.id)
     await screen.findByText('SKU-001')
 
     await user.click(screen.getByRole('textbox', { name: 'Cantidad SKU-001' }))
@@ -141,11 +148,12 @@ describe('CaptureTable', () => {
   })
 
   it('saves dirty rows in one batch with a single idempotency key', async () => {
+    const attempt = await freshAttempt()
     const saveBatch = vi
       .spyOn(mockInventoryApi, 'saveBatch')
       .mockResolvedValue(undefined)
     const user = userEvent.setup()
-    renderTable()
+    renderTable(attempt.id)
     await screen.findByText('SKU-001')
 
     await user.click(screen.getByRole('textbox', { name: 'Cantidad SKU-001' }))
@@ -160,7 +168,8 @@ describe('CaptureTable', () => {
     await waitFor(() => {
       expect(saveBatch).toHaveBeenCalledTimes(1)
     })
-    const [key, payload] = saveBatch.mock.calls[0]
+    const [scope, key, payload] = saveBatch.mock.calls[0]
+    expect(scope).toBe(attempt.id)
     expect(typeof key).toBe('string')
     expect(key).not.toHaveLength(0)
     expect(payload).toHaveLength(2)
@@ -180,12 +189,13 @@ describe('CaptureTable', () => {
   })
 
   it('reuses the same key on retry and clears dirty flags on success', async () => {
+    const attempt = await freshAttempt()
     const saveBatch = vi
       .spyOn(mockInventoryApi, 'saveBatch')
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValue(undefined)
     const user = userEvent.setup()
-    renderTable()
+    renderTable(attempt.id)
     await screen.findByText('SKU-001')
 
     await user.click(screen.getByRole('textbox', { name: 'Cantidad SKU-001' }))
@@ -202,8 +212,8 @@ describe('CaptureTable', () => {
     await waitFor(() => {
       expect(saveBatch).toHaveBeenCalledTimes(2)
     })
-    expect(saveBatch.mock.calls[0][0]).toBe(saveBatch.mock.calls[1][0])
-    expect(saveBatch.mock.calls[1][1]).toEqual(saveBatch.mock.calls[0][1])
+    expect(saveBatch.mock.calls[0][1]).toBe(saveBatch.mock.calls[1][1])
+    expect(saveBatch.mock.calls[1][2]).toEqual(saveBatch.mock.calls[0][2])
     expect(
       await screen.findByText('Captura guardada correctamente.'),
     ).toBeVisible()
@@ -216,11 +226,12 @@ describe('CaptureTable', () => {
   })
 
   it('sends COUNTED_ZERO as zero string and NOT_FOUND as null', async () => {
+    const attempt = await freshAttempt()
     const saveBatch = vi
       .spyOn(mockInventoryApi, 'saveBatch')
       .mockResolvedValue(undefined)
     const user = userEvent.setup()
-    renderTable()
+    renderTable(attempt.id)
     await screen.findByText('SKU-003')
 
     await selectState('SKU-003', 'Contada en cero')
@@ -230,7 +241,7 @@ describe('CaptureTable', () => {
     await waitFor(() => {
       expect(saveBatch).toHaveBeenCalledTimes(1)
     })
-    const [, payload] = saveBatch.mock.calls[0]
+    const [, , payload] = saveBatch.mock.calls[0]
     expect(payload).toContainEqual({
       lineCode: 'SKU-003',
       quantity: '0',

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { mockInventoryApi } from '../../shared/api/inventory/mock'
+import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import type { CaptureChange } from '../../shared/api/inventory/models'
 import {
   createIdempotencyRegistry,
@@ -37,29 +37,49 @@ function memoryKeyStore(): IdempotencyKeyStore {
 const needsQty = (state: RowState) => state === 'COUNTED'
 
 /**
- * Blind-capture form state. Every row starts NOT_COUNTED with an empty
- * quantity input; the system quantity stays hidden until the row leaves
- * NOT_COUNTED. One idempotency key is minted per batch through the shared
- * registry, so a retry without edits reuses the same key.
+ * Blind-capture form state, scoped to one attempt. Every row starts
+ * NOT_COUNTED with an empty quantity input; the system quantity stays hidden
+ * until the row leaves NOT_COUNTED. One idempotency key is minted per batch
+ * through the shared registry, so a retry without edits reuses the same key.
+ *
+ * Without an `attemptId` the legacy global `/capture` view is kept. With one,
+ * lines and lock state are attempt-scoped, and a locked attempt is read-only:
+ * edits and saves become no-ops.
  */
-export function useCaptureForm() {
+export function useCaptureForm(attemptId?: string) {
   const { t } = useTranslation()
+  const api = useInventoryApi()
   const registry = useMemo(
     () => createIdempotencyRegistry(memoryKeyStore()),
     [],
   )
   const keyRef = useRef<string | null>(null)
+  const scopeKey = attemptId ?? 'legacy'
   const [forms, setForms] = useState<CaptureRowForm[] | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const initializedKey = useRef<string | null>(null)
 
   const linesQuery = useQuery({
-    queryKey: ['capture-lines'],
-    queryFn: () => mockInventoryApi.getOperatorLines('capture'),
+    queryKey:
+      attemptId === undefined ? ['capture-lines'] : ['capture-lines', attemptId],
+    queryFn: () => api.getOperatorLines(attemptId ?? 'capture'),
   })
 
+  const lockQuery = useQuery({
+    queryKey: ['attempt-lock', scopeKey],
+    queryFn: () =>
+      api
+        .getHistory(attemptId ?? '')
+        .then((versions) => versions.length > 0)
+        .catch(() => false),
+    enabled: attemptId !== undefined,
+  })
+  const locked = lockQuery.data ?? false
+
   useEffect(() => {
-    if (forms === null && linesQuery.data !== undefined) {
+    if (linesQuery.data !== undefined && initializedKey.current !== scopeKey) {
+      initializedKey.current = scopeKey
       setForms(
         linesQuery.data.map((line) => ({
           code: line.code,
@@ -71,9 +91,10 @@ export function useCaptureForm() {
         })),
       )
     }
-  }, [forms, linesQuery.data])
+  }, [linesQuery.data, scopeKey])
 
   const setQty = (code: string, value: string) => {
+    if (locked) return
     setSaveSuccess(false)
     setForms((prev) =>
       (prev ?? []).map((row) => {
@@ -90,6 +111,7 @@ export function useCaptureForm() {
   }
 
   const setState = (code: string, state: RowState) => {
+    if (locked) return
     setSaveSuccess(false)
     setForms((prev) =>
       (prev ?? []).map((row) => {
@@ -108,7 +130,7 @@ export function useCaptureForm() {
 
   const mutation = useMutation({
     mutationFn: (input: { key: string; changes: CaptureChange[] }) =>
-      mockInventoryApi.saveBatch(input.key, input.changes),
+      api.saveBatch(attemptId ?? 'capture', input.key, input.changes),
     onSuccess: (_, input) => {
       const saved = new Set(input.changes.map((change) => change.lineCode))
       setForms((prev) =>
@@ -126,6 +148,7 @@ export function useCaptureForm() {
   })
 
   const submit = async () => {
+    if (locked) return
     const current = forms ?? []
     const marked = current.map((row) => {
       if (
@@ -167,6 +190,7 @@ export function useCaptureForm() {
     rows,
     isPending: linesQuery.isPending || forms === null,
     isSaving: mutation.isPending,
+    locked,
     saveError,
     saveSuccess,
     dirtyCount: rows.filter((row) => row.dirty).length,

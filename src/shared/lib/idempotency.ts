@@ -8,6 +8,18 @@ const fingerprintFor = (operation: string, payload: string) => {
   return `${operation}:${payload}`
 }
 
+// `crypto.randomUUID` is absent in some runtimes (notably jsdom), so mint
+// with a fallback. Uniqueness per process is enough here because the
+// registry already dedupes by operation fingerprint.
+const mintKey = (): string => {
+  const candidate = (globalThis as { crypto?: { randomUUID?: () => string } })
+    .crypto
+  if (candidate && typeof candidate.randomUUID === 'function') {
+    return candidate.randomUUID()
+  }
+  return `key-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 export const createIdempotencyRegistry = (keyStore: IdempotencyKeyStore) => {
   const inFlight = new Map<string, Promise<string>>()
 
@@ -18,7 +30,7 @@ export const createIdempotencyRegistry = (keyStore: IdempotencyKeyStore) => {
     const fingerprint = fingerprintFor(operation, payload)
     const current = await keyStore.get(fingerprint)
     if (current) return current
-    const key = crypto.randomUUID()
+    const key = mintKey()
     await keyStore.set(fingerprint, key)
     return key
   }
