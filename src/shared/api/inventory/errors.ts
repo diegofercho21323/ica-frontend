@@ -1,8 +1,11 @@
-export type HttpStatus = 400 | 403 | 404 | 409 | 422
+export type HttpStatus = 400 | 401 | 403 | 404 | 409 | 422
 
 // Error codes mirror PRD appendix A. Exact server strings are still an open
 // question in `design.md`; these names are the mock contract until confirmed.
 export type ErrorCode =
+  | 'BAD_REQUEST'
+  | 'UNAUTHORIZED'
+  | 'UNPROCESSABLE'
   | 'SCOPE_NOT_FOUND'
   | 'ATTEMPT_NOT_FOUND'
   | 'PENDING_LINES_EXIST'

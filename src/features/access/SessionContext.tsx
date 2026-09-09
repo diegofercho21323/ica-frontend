@@ -10,6 +10,7 @@ import {
 import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import type { DemoCredentials, DemoSession } from '../../shared/api/inventory/models'
 import type { InventoryApiPort } from '../../shared/api/inventory/port'
+import { authTokenStorage, isAuthTokenExpired } from '../../shared/lib/auth-token'
 import { demoPersistence } from '../../shared/lib/persistence'
 import { parseDemoSession } from './parseDemoSession'
 
@@ -35,17 +36,23 @@ export function SessionProvider({
 
   useEffect(() => {
     let live = true
-    demoPersistence
-      .loadDemoSession()
-      .then((stored) => {
+    // Token hygiene: an expired persisted token is purged on boot so the app
+    // converges to anonymous instead of reusing a dead bearer.
+    const boot = async () => {
+      try {
+        if (isAuthTokenExpired(await authTokenStorage.load())) {
+          await authTokenStorage.clear()
+        }
+        const stored = await demoPersistence.loadDemoSession()
         if (live) {
           setSession(parseDemoSession(stored))
           setStatus('ready')
         }
-      })
-      .catch(() => {
+      } catch {
         if (live) setStatus('ready')
-      })
+      }
+    }
+    void boot()
     return () => {
       live = false
     }
@@ -61,7 +68,10 @@ export function SessionProvider({
   )
 
   const logout = useCallback(async () => {
-    await demoPersistence.clearDemoSession()
+    await Promise.all([
+      demoPersistence.clearDemoSession(),
+      authTokenStorage.clear(),
+    ])
     setSession(null)
   }, [])
 
