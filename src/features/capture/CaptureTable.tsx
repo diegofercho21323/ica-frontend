@@ -21,22 +21,31 @@ const stateKey: Record<RowState, string> = {
 /**
  * Blind-count capture table. Quantities are exact-decimal strings edited
  * through text inputs with decimal keyboards; the system quantity stays
- * hidden while a row is NOT_COUNTED. Dirty, valid rows batch-save with one
- * idempotency key.
+ * hidden from the operator — the system column always renders "Oculta"
+ * unless `showSystemQuantity` is set (reserved for a future auditor/leader
+ * view). Dirty, valid rows batch-save with one idempotency key. A locked
+ * attempt renders read-only.
  */
-export function CaptureTable() {
+export function CaptureTable({
+  attemptId,
+  showSystemQuantity = false,
+}: {
+  attemptId?: string
+  showSystemQuantity?: boolean
+}) {
   const { t } = useTranslation()
   const {
     rows,
     isPending,
     isSaving,
+    locked,
     saveError,
     saveSuccess,
     dirtyCount,
     setQty,
     setState,
     submit,
-  } = useCaptureForm()
+  } = useCaptureForm(attemptId)
 
   const columns: ColumnsType<CaptureRowForm> = [
     {
@@ -53,9 +62,9 @@ export function CaptureTable() {
       title: t('capture.systemQuantity'),
       key: 'systemQuantity',
       render: (_, row) =>
-        row.state === 'NOT_COUNTED'
-          ? t('capture.hidden')
-          : (row.systemQty ?? '—'),
+        showSystemQuantity && row.state !== 'NOT_COUNTED'
+          ? (row.systemQty ?? '—')
+          : t('capture.hidden'),
     },
     {
       title: t('capture.quantity'),
@@ -67,6 +76,7 @@ export function CaptureTable() {
             inputMode="decimal"
             autoComplete="off"
             value={row.qty}
+            disabled={locked}
             status={row.error ? 'error' : undefined}
             onChange={(event) => setQty(row.code, event.target.value)}
           />
@@ -83,6 +93,7 @@ export function CaptureTable() {
         <Select
           aria-label={`${t('capture.state')} ${row.code}`}
           value={row.state}
+          disabled={locked}
           style={{ minWidth: 160 }}
           onChange={(value: RowState) => setState(row.code, value)}
           options={STATE_ORDER.map((state) => ({
@@ -107,6 +118,9 @@ export function CaptureTable() {
           scroll={{ x: true }}
         />
       </div>
+      {locked ? (
+        <Alert role="status" type="info" message={t('capture.lockedNotice')} />
+      ) : null}
       {saveError ? (
         <Alert
           role="alert"
@@ -127,7 +141,7 @@ export function CaptureTable() {
           type="primary"
           onClick={submit}
           loading={isSaving}
-          disabled={isSaving || dirtyCount === 0}
+          disabled={locked || isSaving || dirtyCount === 0}
         >
           {isSaving ? t('capture.saving') : t('capture.save')}
         </Button>

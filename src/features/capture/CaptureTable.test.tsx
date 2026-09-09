@@ -111,16 +111,20 @@ describe('CaptureTable', () => {
     ).toHaveTextContent('Sin contar')
   })
 
-  it('hides currentQuantity for NOT_COUNTED rows and reveals it once counted', async () => {
+  it('keeps currentQuantity hidden from the operator even once counted (F6-P1 blindness)', async () => {
     const attempt = await freshAttempt()
-    renderTable(attempt.id)
+    const { container } = renderTable(attempt.id)
     await screen.findByText('SKU-002')
 
     expect(screen.queryByText('10.10')).not.toBeInTheDocument()
 
     await selectState('SKU-002', 'Contada')
 
-    expect(await screen.findByText('10.10')).toBeVisible()
+    // Operator blindness: the system figure never reaches the DOM — neither
+    // as text nor smuggled inside a title/aria attribute.
+    expect(screen.getAllByText('Oculta')).toHaveLength(5)
+    expect(screen.queryByText('10.10')).not.toBeInTheDocument()
+    expect(container.innerHTML).not.toContain('10.10')
   })
 
   it('shows an inline error for invalid input and excludes the row from the batch', async () => {
