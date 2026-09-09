@@ -19,7 +19,7 @@ export interface InventoryApiPort {
   listScopes(): Promise<InventoryScope[]>
   startAttempt(scopeId: string, mode: AttemptMode): Promise<Attempt>
   getOperatorLines(attemptId: string): Promise<OperatorLineView[]>
-  saveBatch(idempotencyKey: string, changes: CaptureChange[]): Promise<void>
+  saveBatch(attemptId: string, idempotencyKey: string, changes: CaptureChange[]): Promise<void>
   getReview(attemptId: string): Promise<ReviewView>
   finalize(attemptId: string, options?: FinalizeOptions): Promise<AttemptVersion>
   submit(attemptId: string, idempotencyKey: string): Promise<Receipt>

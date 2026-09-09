@@ -17,11 +17,10 @@ import type {
   ReviewView,
 } from './models'
 
-// Legacy global capture path (pre-close-loop `/capture`): one ledger entry per
-// batch key. A repeated call with the same key and payload is a no-op success;
-// the same key with a different payload is a conflict. `resetDemo` clears it.
+// Attempt-scoped batch ledger: one fingerprint per `${attemptId}:${key}`.
+// A repeated call with the same key and payload is a no-op success; the same
+// key with a different payload is a conflict. `resetDemo` clears it.
 const seenBatches = new Map<string, string>()
-const appliedByLine = new Map<string, CaptureChange>()
 
 // PR1 attempt store: deterministic ids (`att-<n>-<scope>`), per-attempt lines,
 // versioning, and the submission ledger live here. `resetDemo` clears all of it.
@@ -119,46 +118,32 @@ export const mockInventoryApi: InventoryApiPort = {
     return { ...mintAttempt(scopeId, mode, currentUserId).attempt }
   },
   async getOperatorLines(attemptId: string) {
-    const record = attempts.get(attemptId)
-    if (record) return [...record.lines.values()].map((line) => ({ ...line }))
-    // Unknown id: legacy global overlay for the pre-close-loop `/capture`
-    // view. Attempt-scoped reads always hit the branch above.
-    return operatorV2Fixture.map((line) => {
-      const applied = appliedByLine.get(line.code)
-      if (!applied) return { ...line }
-      return { ...line, state: applied.state, currentQuantity: applied.quantity }
-    })
+    const record = requireAttempt(attemptId)
+    return [...record.lines.values()].map((line) => ({ ...line }))
   },
-  async saveBatch(idempotencyKey: string, changes: CaptureChange[]) {
-    // PR1 routing: the global batch overlays every unlocked attempt plus the
-    // legacy fixture view. Locked records are never mutated; when every known
-    // attempt is locked the batch has nowhere legal to land, so it conflicts
-    // instead of risking immutable lines. PR2 scopes this per attemptId.
-    const unlocked = [...attempts.values()].filter((record) => !record.locked)
-    if (attempts.size > 0 && unlocked.length === 0) {
-      const locked = [...attempts.values()][0]
-      throw new HttpError(409, 'ATTEMPT_LOCKED', `Attempt ${locked?.attempt.id} is locked`)
+  async saveBatch(attemptId: string, idempotencyKey: string, changes: CaptureChange[]) {
+    const record = requireAttempt(attemptId)
+    if (record.locked) {
+      throw new HttpError(409, 'ATTEMPT_LOCKED', `Attempt ${attemptId} is locked`)
     }
     const fingerprint = JSON.stringify(changes)
-    const seen = seenBatches.get(idempotencyKey)
+    const ledgerKey = `${attemptId}:${idempotencyKey}`
+    const seen = seenBatches.get(ledgerKey)
     if (seen !== undefined) {
       if (seen !== fingerprint) {
         throw new HttpError(409, 'IDEMPOTENCY_CONFLICT', 'Idempotency key reuse with a different payload')
       }
       return
     }
-    seenBatches.set(idempotencyKey, fingerprint)
+    seenBatches.set(ledgerKey, fingerprint)
     for (const change of changes) {
-      appliedByLine.set(change.lineCode, { ...change })
-      for (const record of unlocked) {
-        const line = record.lines.get(change.lineCode)
-        if (line) {
-          record.lines.set(change.lineCode, {
-            ...line,
-            state: change.state,
-            currentQuantity: change.quantity,
-          })
-        }
+      const line = record.lines.get(change.lineCode)
+      if (line) {
+        record.lines.set(change.lineCode, {
+          ...line,
+          state: change.state,
+          currentQuantity: change.quantity,
+        })
       }
     }
   },
@@ -283,7 +268,6 @@ export const mockInventoryApi: InventoryApiPort = {
   },
   async resetDemo() {
     seenBatches.clear()
-    appliedByLine.clear()
     attempts.clear()
     submissions.clear()
     replacementKeys.clear()
