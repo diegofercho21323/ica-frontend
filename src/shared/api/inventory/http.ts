@@ -50,15 +50,17 @@ export type BatchBody = { changes: ChangeInput[] }
 
 // App. A ChangeInput: exact-string quantity verbatim (never Number()), exact
 // unit, capture_method, confirm flag; only NOT_FOUND may travel explicitly.
+// Per-change unit/method/confirm win (F3 guided capture); the batch-level
+// options stay as fallback for callers that do not track them per line.
 export const toChangeInput = (
   change: CaptureChange,
   options: { unit: string; capture_method: string },
 ): ChangeInput => ({
   line_id: change.lineCode,
   quantity: change.quantity,
-  unit: options.unit,
-  capture_method: options.capture_method,
-  confirm_unusual_quantity: false,
+  unit: change.unit ?? options.unit,
+  capture_method: change.captureMethod ?? options.capture_method,
+  confirm_unusual_quantity: change.confirmUnusualQuantity ?? false,
   ...(change.state === 'NOT_FOUND' ? { state: 'NOT_FOUND' as const } : {}),
 })
 

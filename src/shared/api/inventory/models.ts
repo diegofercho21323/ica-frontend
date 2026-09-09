@@ -38,6 +38,12 @@ export type CaptureChange = {
   lineCode: string
   quantity: string | null
   state: OperatorLineView['state']
+  /** Authoritative ERP unit, exact and untranslated; the client never invents one. */
+  unit?: string
+  /** How the quantity was captured (keyboard/stepper/manual/barcode/voice-demo). */
+  captureMethod?: string
+  /** Advisory 422 confirm: resend of the identical exact-string quantity. */
+  confirmUnusualQuantity?: boolean
 }
 export type DemoPreset = 'open-count' | 'finalized' | 'retry' | 'blind-v2'
 
