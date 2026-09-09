@@ -10,6 +10,7 @@ import type {
   CaptureChange,
   DemoRole,
   DemoSession,
+  Receipt,
 } from './models'
 import type { InventoryApiPort } from './port'
 
@@ -150,6 +151,30 @@ export const toDemoSession = (me: unknown): DemoSession => {
   }
 }
 
+// POST attempts/:id/submit returns the receipt verbatim: key, terminal
+// status, payload_hash, and the ERP reference (null while FAILED). A receipt
+// without payload_hash is rejected — the client never invents one.
+export const toSubmitReceipt = (data: unknown): Receipt => {
+  const record = (data ?? {}) as Record<string, unknown>
+  const status = record['status']
+  if (
+    typeof record['key'] !== 'string' ||
+    (status !== 'SUCCEEDED' && status !== 'FAILED') ||
+    typeof record['payload_hash'] !== 'string'
+  ) {
+    throw new Error('POST submit returned a receipt without payload_hash')
+  }
+  return {
+    key: record['key'] as string,
+    status,
+    payload_hash: record['payload_hash'] as string,
+    erp_reference:
+      typeof record['erp_reference'] === 'string'
+        ? (record['erp_reference'] as string)
+        : null,
+  }
+}
+
 export type HttpInventoryApiOptions = {
   baseUrl: string
   transport?: HttpTransport
@@ -234,7 +259,19 @@ export const createHttpInventoryApi = (
     },
     getReview: async () => disabled(),
     finalize: async () => disabled(),
-    submit: async () => disabled(),
+    submit: async (attemptId, idempotencyKey) => {
+      const response = await transport.request({
+        method: 'POST',
+        url: `${baseUrl}/attempts/${attemptId}/submit`,
+        headers: { ...(await authHeaders()), 'Idempotency-Key': idempotencyKey },
+      })
+      // One attempt only: 409 (same-key-different-payload) surfaces typed
+      // and never auto-retries; 401 purges the stored token via throwForStatus.
+      if (response.status < 200 || response.status >= 300) {
+        await throwForStatus(response.status, `POST submit for ${attemptId} failed`)
+      }
+      return toSubmitReceipt(response.data)
+    },
     getHistory: async () => disabled(),
     createRecount: async () => disabled(),
     loadPreset: async () => disabled(),
