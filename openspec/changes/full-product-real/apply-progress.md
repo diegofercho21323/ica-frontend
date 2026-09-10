@@ -78,4 +78,109 @@ Evidence revision (sha256 of git HEAD `0d21336…`): `sha256:876f9ae0b9c9673dda3
 
 ### Remaining tasks (out of scope for this work unit)
 
-- F3-PR1..4 (4.1–4.8), F4-PR1..2 (5.1–5.4), F5-PR1..3 (6.1–6.6) — untouched.
+- F3-PR2..4 (4.3–4.8), F4-PR1..2 (5.1–5.4), F5-PR1..3 (6.1–6.6) — untouched.
+
+---
+
+## Work Unit: F3-PR1 (tasks 4.1 + 4.2) — Tallycore AntD tokens + AA contrast table
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design`, `work-unit-commits` (paths-injected).
+
+### Completed tasks
+
+| Task | State | Commit |
+|------|-------|--------|
+| 4.1 RED comprehensive Tallycore token + AA + static-scan test | [x] | `9bff03b` feat(theme): Tallycore AntD tokens with AA contrast table |
+| 4.2 GREEN Tallycore token set + theme mapping + contrast table | [x] | `9bff03b` (same work unit) |
+
+### Approach — reconciled existing files (no parallel `theme/tokens.ts`)
+
+The tasks.md text named `src/app/theme/tokens.ts` but the repo already had
+`src/app/tokens.ts` + `src/app/theme.ts` + `src/app/theme.tokens.test.ts` +
+`providers.tsx` `ConfigProvider`. Per orchestrator instruction, reconciled those
+in place instead of creating parallel modules. `src/app/theme/` now holds only
+`contrast-table.md`.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.1 | `src/app/theme.tokens.test.ts` | Unit | ✅ baseline: old test 6/6 green (Datup values) | ✅ rewritten, 5/14 fail vs old tokens (`colorPrimary` undefined, font-family Manrope, `fontSize` undefined, mapping mismatch) | ✅ 14/14 pass after token+theme rewrite | ✅ 8 distinct AA pairs via `it.each` + 3 mapping cases + font-scale ascending case + guard-the-guard scan (finds hex in `tokens.ts`, none in `src/app`/`src/features`) | ✅ shared `SPEC` map + `collectSources` walker, no duplication |
+
+- **Approval tests**: `tests/theme.tokens.test.ts` and `tests/visual-shell.test.tsx` first case acted as approval tests — updated to the new key names/values, still assert "theme derives from tokens.ts, no hex in shell sources".
+- **Pure functions created**: 2 in the test (`luminance`, `ratio` — WCAG G17/G18); production code is a config object, no branching.
+- Triangulation not skipped: 8 AA pairs + 3 layout-mapping assertions exercise every token value independently.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/app/theme.tokens.test.ts` → **14/14 pass** (was 5 fail / 14 at RED) |
+| Full suite | `npm run test:run` → **251/251 pass, 42 files** (was 246/246; +5 net from the expanded token test) |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (111 modules, 408 deps) |
+| Runtime harness | N/A — token config object resolved at import; no network/runtime boundary. Full RTL suite (`visual-shell.test.tsx` renders `<App />` through `ConfigProvider`) is the integration surface and is green. |
+| Rollback boundary | Revert commit `9bff03b`. Touches only `src/app/tokens.ts`, `src/app/theme.ts`, `src/app/theme.tokens.test.ts`, `src/app/theme/contrast-table.md` (new), `tests/theme.tokens.test.ts`, `tests/visual-shell.test.tsx`, `tasks.md`. No feature/primitive code touched; `providers.tsx` unchanged. |
+
+### AA contrast nudges (task 4.2 — recorded as required)
+
+Two raw spec hex values failed white-text AA on their solid fill:
+
+| Token | Spec hex | White ratio (spec) | Nudged hex | White ratio (final) |
+|---|---|---|---|---|
+| `colorSuccess` | `#1F8A4C` | 4.38:1 ❌ | `#1C8449` | 4.72:1 ✅ |
+| `colorWarning` | `#B26A00` | 4.24:1 ❌ | `#A86400` | 4.68:1 ✅ |
+
+Minimal single-step darkening, same hue, still swappable at `ConfigProvider`.
+Full table: `src/app/theme/contrast-table.md`. All 8 text/bg pairs now ≥4.5:1.
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/app/tokens.ts` | Modified | Datup violet set → Tallycore set; added `colorTextSecondary`, `fontSize`; renamed keys to AntD-semantic names; doc comment |
+| `src/app/theme.ts` | Modified | maps all Tallycore tokens (incl. `colorBgLayout`, `colorTextSecondary`, `fontSize`); `components.Layout` kept, now derives from `colorBgContainer`/`colorBgLayout`/`colorText` |
+| `src/app/theme.tokens.test.ts` | Modified | full rewrite: spec-table assertions, pinned font stack + scale, 8 AA pairs, recursive static brand-literal scan |
+| `src/app/theme/contrast-table.md` | Created | WCAG 2.2 AA proof + nudge log |
+| `tests/theme.tokens.test.ts` | Modified | new token key names; exhaustion + shell-hex scan preserved |
+| `tests/visual-shell.test.tsx` | Modified | "Datup" → "Tallycore"; assert `#0B5CD6` / radius `6` / Inter |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 4.1 + 4.2 `[x]` with evidence |
+
+### Deviations from design
+
+- tasks.md named `src/app/theme/tokens.ts` + `src/app/theme/tokens.test.ts`; reconciled the pre-existing `src/app/tokens.ts` / `theme.ts` / `theme.tokens.test.ts` instead (orchestrator instruction). Same behavior, no parallel modules.
+- `colorSuccess` / `colorWarning` differ from the raw spec hex by a minimal AA nudge (documented above). Spec explicitly allows token values to be tuned at the `ConfigProvider` layer.
+- Commit message is `feat(theme): Tallycore AntD tokens with AA contrast table` (orchestrator wording) rather than tasks.md's shorter `feat(theme): Tallycore AntD tokens`.
+
+### Attempt ledger — settle blocked on stale changed-line accounting (not a code failure)
+
+`gentle-ai sdd-attempt acquire` → `state: proceed`, token `sha256:d418f227…`.
+
+`gentle-ai sdd-attempt settle --outcome passed` → **recorded** attempt ordinal 12
+as `outcome: passed`, then returned `state: blocked / maintainer_decision`.
+
+Cause: the ledger charges the *combined 2-commit branch diff* (`465` lines) to
+the attempt and flags `changed_line_budget_exceeded` / `decision_required` /
+`next_action: reset`. The reviewable code+test change is **384 lines** (commit
+`9bff03b`, under the 400 budget); the overflow is the ~80-line SDD bookkeeping
+commit `docs(sdd)` + `tasks.md` checkboxes, which are pipeline artifacts, not
+reviewer code. Per work-unit-commits, docs/bookkeeping are not shrunk to hit the
+number.
+
+This is the same non-executor-clearable ledger condition documented for F1-PR3.
+A maintainer must run:
+
+```
+gentle-ai sdd-attempt reset --cwd /mnt/developments/ica-frontend --change full-product-real \
+  --expected-revision sha256:4063adb6bfbc4b5b74af236f322474e9295a445a36371167c889e86110fb41ff \
+  --request-id "<unique>" --reason "F3-PR1 landed green (251/251, typecheck/lint/fsd clean); 384 reviewable lines under budget, overflow is SDD bookkeeping" --actor "<actor>"
+```
+
+Retained attempt token: `sha256:d418f227ab6b176bf4ca998101ddedfbc1fe4af6e5210ab164c39eedaf3f7eb5`
+Evidence revision passed to settle: `sha256:a37b8f5a77d056abcc90ac2159ca394c653693e144e7cc29a1c8536439ecd2fb`
+(status top-level `revision` for the reset: `sha256:4063adb6bfbc4b5b74af236f322474e9295a445a36371167c889e86110fb41ff`)
+
+The code work for tasks 4.1 + 4.2 is complete and fully verified; the ledger
+block does not change that.
