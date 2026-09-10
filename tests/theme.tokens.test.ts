@@ -10,29 +10,27 @@ const SHELL_SOURCES = [
   'src/app/providers.tsx',
 ]
 const HEX = /#[0-9A-Fa-f]{3,8}\b/g
-// colorActionInk is reserved for future ink-on-action use; AntD seed tokens
-// have no slot for it, so exhaustion exempts it by name.
-const RESERVED_TOKENS: readonly string[] = ['colorActionInk']
 
-describe('theme tokens derive from tokens.ts', () => {
-  it('maps AntD seed tokens to the shared tokens', () => {
+describe('Tallycore theme tokens derive from tokens.ts', () => {
+  it('maps every AntD semantic token to the shared Tallycore tokens', () => {
     const seed = theme.token ?? {}
-    expect(seed.colorPrimary).toBe(tokens.colorAction)
-    expect(seed.colorBgBase).toBe(tokens.colorSurfaceSunken)
-    expect(seed.colorBgContainer).toBe(tokens.colorSurface)
-    expect(seed.colorTextBase).toBe(tokens.colorTextStrong)
-    expect(seed.colorBorder).toBe(tokens.colorBorderSubtle)
-    expect(seed.colorSuccess).toBe(tokens.colorConfirm)
-    expect(seed.colorWarning).toBe(tokens.colorAttention)
-    expect(seed.colorError).toBe(tokens.colorCritical)
-    expect(seed.borderRadius).toBe(tokens.radiusControl)
-    expect(seed.fontFamily).toBe(tokens.fontFamilyBase)
+    expect(seed.colorPrimary).toBe(tokens.colorPrimary)
+    expect(seed.colorBgLayout).toBe(tokens.colorBgLayout)
+    expect(seed.colorBgContainer).toBe(tokens.colorBgContainer)
+    expect(seed.colorText).toBe(tokens.colorText)
+    expect(seed.colorTextSecondary).toBe(tokens.colorTextSecondary)
+    expect(seed.colorBorder).toBe(tokens.colorBorder)
+    expect(seed.colorSuccess).toBe(tokens.colorSuccess)
+    expect(seed.colorWarning).toBe(tokens.colorWarning)
+    expect(seed.colorError).toBe(tokens.colorError)
+    expect(seed.borderRadius).toBe(tokens.borderRadius)
+    expect(seed.fontFamily).toBe(tokens.fontFamily)
+    expect(seed.fontSize).toBe(tokens.fontSize)
   })
 
-  it('consumes every non-reserved token and keeps brand hex out of shell sources', () => {
+  it('consumes every token and keeps brand hex out of shell sources', () => {
     const consumed = new Set<unknown>(Object.values(theme.token ?? {}))
     for (const [name, value] of Object.entries(tokens)) {
-      if (RESERVED_TOKENS.includes(name)) continue
       expect(
         consumed.has(value),
         `${name} is not consumed by ThemeConfig`,

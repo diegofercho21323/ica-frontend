@@ -51,21 +51,21 @@ describe('visual shell base', () => {
   beforeEach(async () => {
     await clear()
   })
-  it('resolves Datup light tokens from ThemeConfig with no hardcoded brand in shell', () => {
-    expect(tokens.colorAction).toBe('#6600FF')
-    expect(tokens.radiusControl).toBe(12)
-    expect(tokens.fontFamilyBase).toMatch(/manrope/i)
-    expect(tokens.colorSurface).toBe('#FFFFFF')
+  it('resolves Tallycore light tokens from ThemeConfig with no hardcoded brand in shell', () => {
+    expect(tokens.colorPrimary).toBe('#0B5CD6')
+    expect(tokens.borderRadius).toBe(6)
+    expect(tokens.fontFamily).toMatch(/inter/i)
+    expect(tokens.colorBgContainer).toBe('#FFFFFF')
     const seed = theme.token ?? {}
-    expect(seed.colorPrimary).toBe('#6600FF')
-    expect(seed.borderRadius).toBe(12)
-    expect(String(seed.fontFamily)).toMatch(/manrope/i)
+    expect(seed.colorPrimary).toBe('#0B5CD6')
+    expect(seed.borderRadius).toBe(6)
+    expect(String(seed.fontFamily)).toMatch(/inter/i)
     const layout = theme.components?.Layout ?? {}
-    expect(layout.headerBg).toBe(tokens.colorSurface)
-    expect(layout.siderBg).toBe(tokens.colorSurface)
-    expect(layout.lightSiderBg).toBe(tokens.colorSurface)
-    expect(layout.bodyBg).toBe(tokens.colorSurfaceSunken)
-    expect(layout.headerColor).toBe(tokens.colorTextStrong)
+    expect(layout.headerBg).toBe(tokens.colorBgContainer)
+    expect(layout.siderBg).toBe(tokens.colorBgContainer)
+    expect(layout.lightSiderBg).toBe(tokens.colorBgContainer)
+    expect(layout.bodyBg).toBe(tokens.colorBgLayout)
+    expect(layout.headerColor).toBe(tokens.colorText)
   })
 
   it('offsets content below the sticky header with no horizontal overflow', async () => {
