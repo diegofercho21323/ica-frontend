@@ -33,12 +33,13 @@ export function BodegasPage() {
   return <BodegasList />
 }
 
+/**
+ * Legacy attempt-less capture is dropped: blind capture always runs inside a
+ * started attempt. The bare `/capture` entry now routes to scope selection,
+ * where an attempt is started before `/capture/:attemptId` opens.
+ */
 export function CapturePage() {
-  return (
-    <Card>
-      <CaptureTable />
-    </Card>
-  )
+  return <Navigate to="/bodegas" replace />
 }
 
 export function AttemptCapturePage() {

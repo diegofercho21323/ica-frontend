@@ -1,39 +1,19 @@
 import { Col, Row } from 'antd'
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { mockInventoryApi } from '../../shared/api/inventory/mock'
+import { operatorV2Fixture } from '../../shared/api/inventory/fixtures'
 import { KpiCard } from '../../shared/ui/primitives/KpiCard'
 import { selectKpis } from './selectors'
 
+/**
+ * Dashboard KPI band. There is no "current attempt" on the dashboard and the
+ * mock port no longer exposes an attempt-less line read, so the demo KPIs are
+ * derived from the deterministic operator fixture. Live per-attempt progress
+ * belongs to a later phase once a real reads endpoint exists.
+ */
 export function DashboardKpis() {
   const { t } = useTranslation()
-  const { data, isPending } = useQuery({
-    queryKey: ['operator-lines'],
-    queryFn: () => mockInventoryApi.getOperatorLines('dashboard'),
-  })
+  const kpis = selectKpis(operatorV2Fixture)
 
-  if (isPending) {
-    return (
-      <section aria-busy="true">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={6}>
-            <KpiCard label={t('app.kpiTotal')} value="0" loading />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <KpiCard label={t('app.kpiCounted')} value="0" loading />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <KpiCard label={t('app.kpiPending')} value="0" loading />
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <KpiCard label={t('app.kpiProgress')} value="0" unit="%" loading />
-          </Col>
-        </Row>
-      </section>
-    )
-  }
-
-  const kpis = selectKpis(data ?? [])
   return (
     <section>
       <Row gutter={[16, 16]}>

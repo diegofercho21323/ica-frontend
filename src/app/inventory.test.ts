@@ -70,7 +70,6 @@ describe('inventory adapter resolution', () => {
     // Debt still owned by later phases stays explicit here so no NEW direct
     // import can land silently; each phase entry shrinks this list.
     const ownedByLater = new Set([
-      join('src', 'features', 'dashboard', 'DashboardKpis.tsx'),
       join('src', 'features', 'attempts', 'useReview.ts'),
       join('src', 'features', 'attempts', 'useFinalize.ts'),
       join('src', 'features', 'bodegas', 'BodegasList.tsx'),

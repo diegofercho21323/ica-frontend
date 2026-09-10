@@ -23,12 +23,16 @@ describe('inventory contracts', () => {
   // A constant stub would make generated and stored keys indistinguishable, so
   // every mint must be unique for the reuse and deletion properties to be real.
   let mintedKeys = 0
+  // Attempt-scoped mock: reads need a real minted attempt id, not a literal.
+  let attemptId = ''
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mintedKeys = 0
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn(() => `key-${++mintedKeys}`),
     })
+    await mockInventoryApi.resetDemo()
+    attemptId = (await mockInventoryApi.startAttempt('scope-centro', 'guided')).id
   })
 
   afterEach(() => {
@@ -95,7 +99,7 @@ describe('inventory contracts', () => {
   })
 
   it('exposes all four documented count states through the operator port', async () => {
-    const lines = await mockInventoryApi.getOperatorLines('attempt-1')
+    const lines = await mockInventoryApi.getOperatorLines(attemptId)
 
     expect(lineFor(lines, 'SKU-001').state).toBe('NOT_COUNTED')
     expect(lineFor(lines, 'SKU-002').state).toBe('COUNTED')
@@ -107,7 +111,7 @@ describe('inventory contracts', () => {
   })
 
   it('separates COUNTED_ZERO, NOT_FOUND, and NOT_COUNTED by state alone', async () => {
-    const lines = await mockInventoryApi.getOperatorLines('attempt-1')
+    const lines = await mockInventoryApi.getOperatorLines(attemptId)
     const notCounted = lineFor(lines, 'SKU-001')
     const countedZero = lineFor(lines, 'SKU-003')
     const notFound = lineFor(lines, 'SKU-004')
@@ -130,7 +134,7 @@ describe('inventory contracts', () => {
   })
 
   it('keeps quantities as exact decimal strings without float coercion', async () => {
-    const lines = await mockInventoryApi.getOperatorLines('attempt-1')
+    const lines = await mockInventoryApi.getOperatorLines(attemptId)
     const trailing = lineFor(lines, 'SKU-002')
     const highPrecision = lineFor(lines, 'SKU-005')
 
@@ -161,11 +165,11 @@ describe('inventory contracts', () => {
   })
 
   it('returns isolated line copies so a caller cannot corrupt later reads', async () => {
-    const first = await mockInventoryApi.getOperatorLines('attempt-1')
+    const first = await mockInventoryApi.getOperatorLines(attemptId)
     first[0].state = 'COUNTED'
     first[0].currentQuantity = '99'
 
-    const second = await mockInventoryApi.getOperatorLines('attempt-1')
+    const second = await mockInventoryApi.getOperatorLines(attemptId)
     expect(second[0]).not.toBe(first[0])
     expect(second[0]).toMatchObject({
       code: 'SKU-001',

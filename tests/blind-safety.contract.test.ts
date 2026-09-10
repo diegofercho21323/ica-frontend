@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { mockInventoryApi } from '../src/shared/api/inventory/mock'
 
@@ -54,12 +54,20 @@ const expectNoForbiddenKeys = (projection: unknown, source: string): void => {
 }
 
 describe('blind count safety: operator projections carry no system figure', () => {
+  // Attempt-scoped mock: the operator read needs a real minted attempt id.
+  let attemptId = ''
+
+  beforeEach(async () => {
+    await mockInventoryApi.resetDemo()
+    attemptId = (await mockInventoryApi.startAttempt('scope-centro', 'guided')).id
+  })
+
   it('exposes no forbidden key from listScopes()', async () => {
     expectNoForbiddenKeys(await mockInventoryApi.listScopes(), 'listScopes()')
   })
 
   it('exposes no forbidden key from getOperatorLines()', async () => {
-    const lines = await mockInventoryApi.getOperatorLines('attempt-1')
+    const lines = await mockInventoryApi.getOperatorLines(attemptId)
     // Guard the guard: an empty projection would satisfy the assertion below
     // without ever inspecting a real key.
     expect(lines.length).toBeGreaterThan(0)

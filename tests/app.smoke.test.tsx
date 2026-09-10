@@ -105,7 +105,7 @@ describe('application shell', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('activates the Captura link with Space and renders the blind capture table via t()', async () => {
+  it('activates the Captura link with Space and lands on scope selection to start an attempt', async () => {
     const user = userEvent.setup()
     render(<App />)
     await loginAs(user, 'lider', 'lider')
@@ -114,19 +114,15 @@ describe('application shell', () => {
     within(navigation).getByRole('link', { name: 'Captura' }).focus()
     await user.keyboard(' ')
 
-    expect(window.location.pathname).toBe('/capture')
+    // Legacy attempt-less /capture is gone: the Captura entry routes to scope
+    // selection, where a blind attempt is started before capture opens.
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/bodegas')
+    })
     expect(
-      await screen.findByRole('heading', { name: i18n.t('capture.title') }),
+      await screen.findByRole('heading', { name: 'Bodegas' }),
     ).toBeVisible()
-    expect(i18n.t('capture.title')).toBe('Captura ciega')
-    expect(await screen.findByText('SKU-001')).toBeVisible()
-    expect(
-      screen.getByRole('textbox', {
-        name: `${i18n.t('capture.quantity')} SKU-001`,
-      }),
-    ).toHaveValue('')
-    // Blind: system quantities stay hidden while rows are NOT_COUNTED.
-    expect(screen.queryByText('10.10')).not.toBeInTheDocument()
+    expect(await screen.findByText('Bodega Centro')).toBeVisible()
   })
 
   it('closes the mobile drawer on link activation and returns focus to the menu trigger', async () => {

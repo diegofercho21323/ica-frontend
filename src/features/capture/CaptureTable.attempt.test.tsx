@@ -79,7 +79,10 @@ describe('CaptureTable attempt scope', () => {
     fireEvent.mouseDown(option)
     fireEvent.click(option)
 
-    expect(await screen.findByText('10.10')).toBeVisible()
+    // Blindness holds after the row leaves NOT_COUNTED: the system figure
+    // still never reaches the operator DOM (F6-P1 blindness).
+    expect(screen.getAllByText('Oculta')).toHaveLength(5)
+    expect(screen.queryByText('10.10')).not.toBeInTheDocument()
   })
 
   it('disables every input once the attempt is locked', async () => {

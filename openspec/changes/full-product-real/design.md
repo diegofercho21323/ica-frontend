@@ -71,6 +71,6 @@ No migration. F1 is internal refactor behind identical mock behavior (2 chained 
 
 ## Open Questions
 
-- [ ] Legacy `/capture` without `attemptId`: redirect to attempt-start or remove? (Propose: require attempt, drop legacy path)
+- [x] Legacy `/capture` without `attemptId`: RESOLVED (F1-PR3) — require attempt, drop legacy path. Bare `/capture` redirects to `/bodegas` (scope selection / attempt start); blind capture only runs inside a started attempt at `/capture/:attemptId`.
 - [ ] `payload_hash` display policy (GAP-2) — needed before F4 receipt UI
 - [ ] Secure token/offline-data storage + wipe policy (GAP-3) — needed before F2 close
