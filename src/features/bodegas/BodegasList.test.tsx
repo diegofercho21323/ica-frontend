@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import i18n from 'i18next'
 import type { PropsWithChildren } from 'react'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockInventoryApi } from '../../shared/api/inventory/mock'
 import { BodegasList } from './BodegasList'
@@ -29,9 +30,11 @@ void i18n.use(initReactI18next).init({
 function Providers({ children }: PropsWithChildren) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return (
-    <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    </I18nextProvider>
+    <MemoryRouter>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </I18nextProvider>
+    </MemoryRouter>
   )
 }
 
