@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React 19 + TypeScript 5 (strict) + Vite 8, AntD 5, TanStack Query 5, React Router 7, RHF, axios, i18next, idb-keyval.
+  Architecture: Strict Feature-Sliced Design (src/app, pages, features, shared); dependencies flow downward, enforced by dependency-cruiser.
+  Testing: Vitest 4 (jsdom, RTL, jest-dom, user-event) for unit/integration incl. contract tests; Playwright 1.62 for E2E (e2e/ currently empty).
+  Style: ESLint (incl. custom ban on <input type="number"> for exact-decimal safety) + Prettier; t() for user strings; centralized theme tokens.
+  Domain: Inventory blind-count flows; quantities are exact decimal strings; idempotency keys and blind-count boundaries are explicit.
+  Quality gates: npm run lint, typecheck, format:check, fsd (depcruise). No CI workflow yet.
+
+projects:
+  - path: .
+    stack: "React 19 + TypeScript 5 (strict) + Vite 8"
+    test_command: "npm run test:run"
+    test_framework: vitest
+    coverage_command: ""
+    lint_command: "npm run lint"
+    typecheck_command: "npm run typecheck"
+    format_command: "npm run format:check"
+    architecture_command: "npm run fsd"
+
+strict_tdd: true
+test_command: "npm run test:run"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - Respect FSD layer boundaries (dependency-cruiser must pass)
+      - Never use <input type="number"> for quantities (exact decimal strings)
+    tdd: true
+    test_command: "npm run test:run"
+  verify:
+    test_command: "npm run test:run"
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
