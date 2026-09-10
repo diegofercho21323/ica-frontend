@@ -184,3 +184,118 @@ Evidence revision passed to settle: `sha256:a37b8f5a77d056abcc90ac2159ca394c6536
 
 The code work for tasks 4.1 + 4.2 is complete and fully verified; the ledger
 block does not change that.
+
+---
+
+## Work Unit: F3-PR2 (tasks 4.3 + 4.4) — Modal / Drawer / Table / Progress layout primitives
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design`, `work-unit-commits` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file).
+
+### Completed tasks
+
+| Task | State | Commit |
+|------|-------|--------|
+| 4.3 RED — 4 primitive test files (dialog semantics, progressbar, table scroll region, token-only source scan) | [x] | `feat(ui): Modal, Drawer, Table, Progress layout primitives` |
+| 4.4 GREEN — 4 thin typed AntD wrappers | [x] | same commit |
+
+### Approach
+
+Thin wrappers over AntD `Modal` / `Drawer` / `Table` / `Progress`, token-styled
+only (zero hex/radius literals — enforced by a per-file source scan in each
+test). Prop/style conventions match the sibling primitives (`Button`,
+`ItemCard`, `SearchInput`): all user-facing strings arrive via props, no `t()`
+inside `shared/`, no business logic. `primitives/` has no barrel file, so
+consumers keep importing by path (existing convention).
+
+- **Modal** — `onClose` maps to AntD `onCancel`; `closeLabel` sets the close
+  control `aria-label` via `closable={{ 'aria-label' }}`. `keyboard` + `maskClosable`.
+- **Drawer** — same shape, `onClose` passthrough, labelled close, `keyboard` + `maskClosable`.
+- **Table** — generic `<Table<T>>`; wrapped in a `role="region"` `tabIndex={0}`
+  labelled `overflow-x-auto` container so narrow widths get a bounded scroll
+  region (per visual-shell) instead of clipped columns. `scroll={{ x: 'max-content' }}`,
+  `pagination={false}` default.
+- **Progress** — `value` / `max` → clamped percent; the wrapper div carries
+  `role="progressbar"` + `aria-valuenow/min/max` and a visible text `label`;
+  the sibling `LiveRegion` primitive announces `valueText` (never numeric- or
+  color-only).
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.3/4.4 Modal | `src/shared/ui/primitives/Modal.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 5/5 | ✅ open/closed + Esc + close-control + focus-restore + source scan | ➖ minimal wrapper |
+| 4.3/4.4 Drawer | `src/shared/ui/primitives/Drawer.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 6/6 | ✅ open/closed + Esc + scrim + close-control + focus-restore + source scan | ➖ minimal wrapper |
+| 4.3/4.4 Table | `src/shared/ui/primitives/Table.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 5/5 | ✅ headers + rows/cells + labelled scroll region + empty data + source scan | ➖ minimal wrapper |
+| 4.3/4.4 Progress | `src/shared/ui/primitives/Progress.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 5/5 | ✅ value/max bounds + live-region text + label-always + clamp + source scan | ✅ moved progressbar role to wrapper (AntD ProgressProps rejects `role`) |
+
+- **Approval tests**: none — all four files are new.
+- **Pure functions created**: 0 (percent clamp is a one-liner inside `Progress`).
+- Triangulation not skipped: each file exercises ≥4 distinct behavioral paths plus the static source scan.
+
+### jsdom notes (test technique, not production behavior)
+
+- AntD `Modal`/`Drawer` `Esc` handling does not fire through `userEvent.keyboard('{Escape}')` in this jsdom setup; asserted with `fireEvent.keyDown(dialog, { key: 'Escape' })` instead, which drives the real `rc-dialog`/`rc-drawer` handler.
+- Focus **entry** into the dialog is timing-flaky in jsdom; focus **restore** to the trigger on close is reliable and is what the tests assert, together with `aria-modal="true"` as the focus-trap contract.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/shared/ui/primitives/{Modal,Drawer,Table,Progress}.test.tsx` → **21/21 pass** (was 4 files unresolved at RED) |
+| Full suite | `npm run test:run` → **272/272 pass, 46 files** (baseline 251/251, 42 files; +21 new, +4 files). Two consecutive clean runs. |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (119 modules, 447 deps) — primitives import only `antd` + sibling `LiveRegion` |
+| Runtime harness | RTL render + keyboard/pointer interaction is the runtime boundary (portals, focus, Esc, scrim). No network path. |
+| Rollback boundary | Delete `src/shared/ui/primitives/{Modal,Drawer,Table,Progress}.{tsx,test.tsx}` and revert the `tasks.md` / `apply-progress.md` edits in this commit. No existing primitive, token, or feature file touched. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/shared/ui/primitives/Modal.tsx` | Created | thin AntD `Modal` wrapper; `onClose`→`onCancel`, labelled close |
+| `src/shared/ui/primitives/Modal.test.tsx` | Created | 5 tests: titled dialog, focus-trap contract + restore, Esc, close control, source scan |
+| `src/shared/ui/primitives/Drawer.tsx` | Created | thin AntD `Drawer` wrapper; labelled close, `keyboard`, `maskClosable` |
+| `src/shared/ui/primitives/Drawer.test.tsx` | Created | 6 tests: labelled dialog, focus restore, Esc, scrim, close control, source scan |
+| `src/shared/ui/primitives/Table.tsx` | Created | generic AntD `Table` wrapped in a labelled focusable scroll region |
+| `src/shared/ui/primitives/Table.test.tsx` | Created | 5 tests: headers, rows/cells, scroll region, empty data, source scan |
+| `src/shared/ui/primitives/Progress.tsx` | Created | `value`/`max` progressbar wrapper + `LiveRegion` announcement |
+| `src/shared/ui/primitives/Progress.test.tsx` | Created | 5 tests: bounds, live region, label-always, clamp, source scan |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 4.3 + 4.4 `[x]` with evidence |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design
+
+- `design.md` "File Changes" table is scoped to F1; it does not enumerate F3
+  primitives. tasks.md line for F3-PR2 is the authoritative scope and was
+  followed. Commit message uses the orchestrator wording
+  `feat(ui): Modal, Drawer, Table, Progress layout primitives` rather than
+  tasks.md's shorter `feat(ui): layout primitives`.
+- `Progress` puts `role="progressbar"` on the wrapper `div` (not on AntD
+  `Progress`) because `AntProgressProps` does not type `role`. AntD Progress
+  stays as the visual track only. No semantic loss — bounds + label + live
+  region are all present.
+
+### Attempt ledger
+
+`gentle-ai sdd-attempt acquire` → `state: proceed`, token
+`sha256:81b080fc5de7877339ae05591bf2c120c58c86f9b67b1cc0ddfc9ca71f49b23c`.
+
+`gentle-ai sdd-attempt settle --outcome passed
+--evidence-revision sha256:79d536aff406ff8eba420f6e1222bfde6a6c2a245048489b88708c10e6c1b93b
+--untracked-scope=exclude` (excluded the runtime-owned untracked file
+`openspec/changes/full-product-real/.gentle-ai-instance`) → **`state: complete`**.
+No maintainer decision required — reviewable diff for this work unit is well
+under the 400-line budget. This is the first F-series work unit to settle
+cleanly (F1-PR3 and F3-PR1 hit stale base-drift accounting; this attempt was
+acquired against the current base).
+
+### SDD status note (not a code issue)
+
+`gentle-ai sdd-status full-product-real` reports
+`blocked(edit_authority_missing)` because `tasks.md` names the edit root `"/"`
+outside the authorized roots. This is an orchestrator/maintainer consent
+concern (grant edit authority or annotate tasks.md), unrelated to this work
+unit's code, which is complete and fully green.

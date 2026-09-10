@@ -55,8 +55,8 @@ Chain strategy: stacked-to-main
 
 ## Phase F3-PR2: Layout Primitives — spec: visual-shell (token-only styling, focus/target a11y)
 
-- [ ] 4.3 RED `src/shared/ui/primitives/{Modal,Drawer,Table,Progress}.test.tsx`: token-only styling, keyboard nav + focus trap, associated label/`aria-label`, no business logic
-- [ ] 4.4 GREEN implement `Modal.tsx`, `Drawer.tsx`, `Table.tsx`, `Progress.tsx` as thin AntD wrappers; commit `feat(ui): layout primitives`
+- [x] 4.3 RED `src/shared/ui/primitives/{Modal,Drawer,Table,Progress}.test.tsx`: token-only styling (source scan for zero hex/radius literals), dialog semantics (`aria-modal`, focus restore, `Esc`, labelled close, scrim close), progressbar bounds + live-region text label, keyboard-reachable table scroll region, no business logic. RED confirmed: 4 files failed to resolve missing modules.
+- [x] 4.4 GREEN implemented `Modal.tsx`, `Drawer.tsx`, `Table.tsx`, `Progress.tsx` as thin typed AntD wrappers (`Modal`/`Drawer` map `onClose`→`onCancel`/`onClose` + labelled `closable`; `Table` wraps AntD Table in a labelled focusable `overflow-x-auto` region; `Progress` derives percent from `value`/`max`, wrapper carries `role=progressbar` + bounds, `LiveRegion` announces `valueText`). No barrel file in `primitives/` — consumers import by path. `npm run test:run` 272/272; typecheck/lint/fsd clean. commit `feat(ui): Modal, Drawer, Table, Progress layout primitives`
 
 ## Phase F3-PR3: Status Primitives + Token Retheme — spec: visual-shell "Status not color-only", "Focus visible and targets sized"
 
