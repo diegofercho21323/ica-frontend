@@ -74,7 +74,7 @@ describe('ReviewScreen', () => {
 
   it('moves a newly counted line from pending to counted', async () => {
     const attempt = await freshAttempt()
-    await mockInventoryApi.saveBatch('review-key-1', [
+    await mockInventoryApi.saveBatch(attempt.id, 'review-key-1', [
       { lineCode: 'SKU-001', quantity: '7.5', state: 'COUNTED' },
     ])
     render(<ReviewScreen attemptId={attempt.id} />, { wrapper: Providers })
@@ -107,7 +107,7 @@ describe('ReviewScreen', () => {
   it('finalizes directly without a dialog when nothing is pending', async () => {
     const user = userEvent.setup()
     const attempt = await freshAttempt()
-    await mockInventoryApi.saveBatch('review-key-2', [
+    await mockInventoryApi.saveBatch(attempt.id, 'review-key-2', [
       { lineCode: 'SKU-001', quantity: '7.5', state: 'COUNTED' },
     ])
     render(<ReviewScreen attemptId={attempt.id} />, { wrapper: Providers })
