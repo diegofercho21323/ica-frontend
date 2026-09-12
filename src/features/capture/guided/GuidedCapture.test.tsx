@@ -96,6 +96,30 @@ describe('GuidedCapture assistant (F3-PR2)', () => {
     expect(dialog).not.toHaveTextContent('10.10')
   })
 
+  it('moves between lines with arrow keys and closes the open search with Escape', async () => {
+    await mockInventoryApi.resetDemo()
+    const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
+    await mockInventoryApi.saveBatch(attempt.id, 'setup-reopen-sku-002', [
+      { lineCode: 'SKU-002', quantity: null, state: 'NOT_COUNTED' },
+    ])
+    const user = userEvent.setup()
+    render(<GuidedCapture attemptId={attempt.id} mode="guided" strings={STRINGS} />, {
+      wrapper: (props) => Providers({ api: mockInventoryApi, ...props }),
+    })
+    await screen.findByRole('heading', { name: 'Caja demo' })
+    // Tab focuses the card's own action button without triggering any
+    // navigation side effect (unlike clicking Prev/Next themselves).
+    await user.tab()
+    await user.keyboard('{ArrowDown}')
+    expect(await screen.findByRole('heading', { name: 'Granel demo' })).toBeInTheDocument()
+    await user.keyboard('{ArrowUp}')
+    expect(await screen.findByRole('heading', { name: 'Caja demo' })).toBeInTheDocument()
+    await user.keyboard('{Control>}k{/Control}')
+    expect(await screen.findByRole('listbox')).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
+  })
+
   it('holds advisory 422 confirm and resends the identical string on confirm', async () => {
     await mockInventoryApi.resetDemo()
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')

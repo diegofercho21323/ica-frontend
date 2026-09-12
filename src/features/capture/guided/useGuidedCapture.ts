@@ -10,7 +10,10 @@ import {
   createIdempotencyRegistry,
   type IdempotencyKeyStore,
 } from '../../../shared/lib/idempotency'
+import { buildChangeInput, buildConfirmChange } from '../change-input'
 import { QTY_RE } from '../validation'
+
+export { buildConfirmChange } from '../change-input'
 
 export type CaptureMethod = 'keyboard' | 'stepper' | 'manual' | 'barcode' | 'voice-demo'
 export type GuidedMode = 'guided' | 'manual'
@@ -91,25 +94,6 @@ export function getPendingIdentities(
   return lines
     .filter((line) => line.state === 'NOT_COUNTED')
     .map(({ code, name, unit }) => ({ code, name, unit }))
-}
-
-/**
- * Advisory-confirm retry: the identical exact-string quantity with the flag
- * on. Never rounds, clamps, or coerces — unsafe-precision strings survive.
- */
-export function buildConfirmChange(
-  line: Pick<OperatorLineView, 'code' | 'unit'>,
-  quantity: string,
-  captureMethod: CaptureMethod = 'keyboard',
-): CaptureChange {
-  return {
-    lineCode: line.code,
-    quantity,
-    state: 'COUNTED',
-    unit: line.unit,
-    captureMethod,
-    confirmUnusualQuantity: true,
-  }
 }
 
 export type SaveCurrentInput = {
@@ -228,14 +212,10 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
     }
     setFieldError(null)
     const changes: CaptureChange[] = [
-      {
-        lineCode: current.code,
+      buildChangeInput(current, {
         quantity: input.quantity,
-        state: 'COUNTED',
-        unit: current.unit,
         captureMethod: input.captureMethod,
-        confirmUnusualQuantity: false,
-      },
+      }),
     ]
     void registry
       .getKey('guided.saveBatch', JSON.stringify(changes))
