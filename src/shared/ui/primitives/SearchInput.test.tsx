@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SearchInput } from './SearchInput'
+
+const here = dirname(fileURLToPath(import.meta.url))
 
 const RESULTS = [
   { id: 'SKU-001', title: 'Caja demo', subtitle: 'UN' },
@@ -67,5 +72,12 @@ describe('SearchInput primitive (F3-PR2)', () => {
     renderOpen({ results: [] })
     expect(screen.getByText('Sin resultados')).toBeInTheDocument()
     expect(screen.queryByRole('option')).not.toBeInTheDocument()
+  })
+
+  it('carries no hardcoded brand hex, font-family, or radius literal in the component source (F3-PR3)', () => {
+    const source = readFileSync(join(here, 'SearchInput.tsx'), 'utf8')
+    expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+    expect(source).not.toMatch(/font-family|fontFamily|Manrope|['"]Inter['"]/i)
+    expect(source).not.toMatch(/border-?radius\s*[:=]\s*['"]?\d/i)
   })
 })

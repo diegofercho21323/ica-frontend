@@ -299,3 +299,152 @@ acquired against the current base).
 outside the authorized roots. This is an orchestrator/maintainer consent
 concern (grant edit authority or annotate tasks.md), unrelated to this work
 unit's code, which is complete and fully green.
+
+---
+
+## Work Unit: F3-PR3 (tasks 4.5 + 4.6) — UnitBadge, ScannerTrigger + token retheme (retry 2)
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design`, `work-unit-commits` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file).
+Retry context: a prior attempt on this exact slice was killed by an API rate
+limit before any edit landed; the tree was clean at `303db5a` when this retry
+started, so there was no partial state to reconcile.
+
+### Completed tasks
+
+| Task | State | Commit |
+|------|-------|--------|
+| 4.5 RED — `UnitBadge`/`ScannerTrigger` tests + retheme source-scan assertions on 6 existing primitives | [x] | `feat(ui): UnitBadge, ScannerTrigger primitives and token retheme` |
+| 4.6 GREEN — `UnitBadge.tsx` + `ScannerTrigger.tsx` | [x] | same commit |
+
+### Key finding — the 6 existing primitives were already token-only
+
+Before writing any test, a source grep of `Button.tsx`, `NumericInput.tsx`,
+`SearchInput.tsx`, `Status.tsx`, `ItemCard.tsx`, `LiveRegion.tsx` against the
+hex / font-family / px-radius patterns used by the F3-PR2 `Modal`/`Progress`
+source-scan tests (and `theme.tokens.test.ts`'s stricter scan, which only
+covers `src/app/**` + `src/features/**`, never `shared/ui/primitives/**`)
+found **zero matches in all 6 files**. These primitives already style purely
+through AntD components + non-functional Tailwind-shaped class-name markers
+(this repo has **no Tailwind/PostCSS pipeline at all** — confirmed via
+`package.json`, `vite.config.ts`, and no `.css` import anywhere; those
+class names are pre-existing documentation-only markers, not functioning
+CSS). Task 4.6's "replace hardcoded styles with token references" therefore
+had nothing to replace in the 6 files; the real GREEN work is the two new
+primitives. This is recorded here rather than silently narrowing scope.
+
+### Focus-ring / target-size requirement — implementation choice and honest limitation
+
+The visual-shell delta spec requires a visible `2px #0B5CD6` focus ring
+(2px offset) and ≥24×24 px pointer targets. Given no CSS build pipeline
+exists in this repo, and per `strict-tdd.md`'s explicit rule **"CSS class
+assertions are NEVER valid test assertions... use a visual regression tool
+for that"**, this work unit does NOT introduce a new custom CSS/JS focus-ring
+mechanism (which would be untestable in jsdom and unverifiable in review) and
+does NOT add new class-name assertions. Instead, `ScannerTrigger` and
+`UnitBadge` are composed entirely from already-vetted primitives (`Button`,
+`Modal`, `SearchInput`, AntD `Input`) so any target-size/focus behavior those
+already carry via `ConfigProvider` token inheritance applies transitively —
+this is the "or rely on AntD token inheritance" option task 4.6 explicitly
+allows. Pixel-exact focus-ring verification is out of scope for a
+jsdom/RTL primitive suite; a Playwright/E2E visual pass is the correct venue
+and is not part of this slice.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.5/4.6 UnitBadge | `src/shared/ui/primitives/UnitBadge.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 5/5 | ✅ unit-only / unit+label / no-interactive-role / source-scan cases | ➖ minimal, already clean |
+| 4.5/4.6 ScannerTrigger | `src/shared/ui/primitives/ScannerTrigger.test.tsx` | Integration (RTL) | N/A (new) | ✅ module unresolved | ✅ 5/5 | ✅ open-dialog / keyboard-Enter / manual-add reveal / disabled-until-both-fields-then-submit / source-scan | ➖ minimal, already clean |
+| 4.5 Button retheme | `src/shared/ui/primitives/Button.test.tsx` | Unit (source-scan) | ✅ baseline 4/4 pass | ✅ Written | ✅ 5/5 (approval — file already literal-clean) | ➖ single scan assertion, structural | ➖ none needed |
+| 4.5 NumericInput retheme | `src/shared/ui/primitives/NumericInput.test.tsx` | Unit (source-scan) | ✅ baseline 3/3 pass | ✅ Written | ✅ 4/4 (approval) | ➖ single scan assertion, structural | ➖ none needed |
+| 4.5 SearchInput retheme | `src/shared/ui/primitives/SearchInput.test.tsx` | Unit (source-scan) | ✅ baseline 4/4 pass | ✅ Written | ✅ 5/5 (approval) | ➖ single scan assertion, structural | ➖ none needed |
+| 4.5 Status retheme | `src/shared/ui/primitives/Status.test.tsx` | Unit (source-scan) | ✅ baseline 2/2 pass | ✅ Written | ✅ 3/3 (approval — extends the file's pre-existing DOM-level hex check) | ➖ single scan assertion, structural | ➖ none needed |
+| 4.5 ItemCard retheme | `src/shared/ui/primitives/ItemCard.test.tsx` | Unit (source-scan) | ✅ baseline 2/2 pass | ✅ Written | ✅ 3/3 (approval) | ➖ single scan assertion, structural | ➖ none needed |
+| 4.5 LiveRegion retheme | `src/shared/ui/primitives/LiveRegion.test.tsx` | Unit (source-scan) | ✅ baseline 3/3 pass | ✅ Written | ✅ 4/4 (approval) | ➖ single scan assertion, structural | ➖ none needed |
+
+- **Approval tests** (refactoring/regression-guard): 6 — the retheme scans on
+  `Button`/`NumericInput`/`SearchInput`/`Status`/`ItemCard`/`LiveRegion` are
+  approval tests: they capture the current (already-compliant) source state
+  as a permanent regression guard, per `strict-tdd.md`'s approval-testing
+  section. `UnitBadge`/`ScannerTrigger` are genuine new-code RED→GREEN.
+- **Pure functions created**: 0 (`canSubmit` in `ScannerTrigger` is a
+  one-line presentational gate, analogous to `Progress`'s existing percent
+  clamp — not extracted since it has a single call site).
+- Triangulation: `ScannerTrigger`'s disabled→enabled→submit sequence forces
+  real conditional logic (not fake-it); `UnitBadge` triangulates unit-only vs
+  unit+label rendering.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/shared/ui/primitives` → **57/57 pass, 12 files** (was 41/41, 10 files) |
+| Full suite | `npm run test:run` → first run hit a flaky 5s timeout in the unrelated, untouched `tests/app.smoke.test.tsx` keyboard-login test under parallel load; isolated re-run of that file passed 10/10, and `npm run test:run -- --no-file-parallelism` passed **288/288, 48 files** clean. No regression. |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (123 modules, 484 deps) |
+| Runtime harness | RTL render + keyboard interaction (focus + `Enter`, click) is the runtime boundary for `ScannerTrigger`'s open/manual-add/submit flow. No network path. |
+| Rollback boundary | Delete `src/shared/ui/primitives/{UnitBadge,ScannerTrigger}.{tsx,test.tsx}`; revert the added `it(...)` blocks in `Button.test.tsx`, `NumericInput.test.tsx`, `SearchInput.test.tsx`, `Status.test.tsx`, `ItemCard.test.tsx`, `LiveRegion.test.tsx`; revert `tasks.md`/`apply-progress.md` edits in this commit. No production `.tsx` of the 6 existing primitives was modified. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/shared/ui/primitives/UnitBadge.tsx` | Created | read-only exact/untranslated ERP unit + optional translated label, no interactive behavior |
+| `src/shared/ui/primitives/UnitBadge.test.tsx` | Created | 5 tests: unit verbatim, label+unit, unit-only, no interactive role, source-scan |
+| `src/shared/ui/primitives/ScannerTrigger.tsx` | Created | barcode/name-search trigger → `Modal` + `SearchInput`, manual-add fallback with explicit name+unit fields gated by both non-empty |
+| `src/shared/ui/primitives/ScannerTrigger.test.tsx` | Created | 5 tests: opens dialog, keyboard-Enter activation, manual-add reveal, disabled-until-filled + submit, source-scan |
+| `src/shared/ui/primitives/Button.test.tsx` | Modified | +1 source-scan retheme test |
+| `src/shared/ui/primitives/NumericInput.test.tsx` | Modified | +1 source-scan retheme test |
+| `src/shared/ui/primitives/SearchInput.test.tsx` | Modified | +1 source-scan retheme test |
+| `src/shared/ui/primitives/Status.test.tsx` | Modified | +1 source-scan retheme test |
+| `src/shared/ui/primitives/ItemCard.test.tsx` | Modified | +1 source-scan retheme test |
+| `src/shared/ui/primitives/LiveRegion.test.tsx` | Modified | +1 source-scan retheme test |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 4.5 + 4.6 `[x]` with evidence notes |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design
+
+- Task 4.6 named "replace hardcoded styles in the 6 existing primitives with
+  token references" — no literal replacement was needed or performed; all 6
+  were already literal-clean (see "Key finding" above). No semantic
+  deviation: the retheme *guarantee* is now test-enforced where it previously
+  was not (the existing `theme.tokens.test.ts` scan never covered
+  `shared/ui/primitives/**`).
+- The literal "2px solid #0B5CD6, offset 2px" focus ring is not independently
+  implemented or pixel-tested in this slice; see "Focus-ring / target-size"
+  note above. Recommend a follow-up Playwright/E2E visual pass before F3
+  closes if pixel-exact conformance needs sign-off.
+- `ScannerTrigger`'s manual-add submit gate (`canSubmit`) is a small
+  presentational conditional inside the primitive, not caller-supplied
+  (unlike `ItemCard.actionDisabled`), because the assigned requirement text
+  frames "explicit name + unit" as the primitive's own contract, not merely
+  the caller's obligation.
+
+### Native attempt ledger — blocked on maintainer reset (not a code failure)
+
+`gentle-ai sdd-attempt acquire` (after declaring the 4 new untracked files via
+`--untracked-scope=select`) returned:
+
+```
+state: blocked
+reason: maintainer_decision
+exit: SDD runtime objective changed without an explicit reset: reset the
+  objective, then begin again — gentle-ai sdd-attempt reset --cwd
+  "/mnt/developments/ica-frontend" --change "full-product-real"
+  --expected-revision "sha256:ecbe2e66c37c8c4162bf52bca4f59b8cc681ced4be7efc279be04bf29e12b042"
+  --request-id "<unique-request-id>" --reason "<why-the-objective-changed>"
+  --actor "<actor>"
+```
+
+This is the same category of ledger condition already documented for F1-PR3
+and F3-PR1 in this file (objective/base-tree drift the executor cannot clear
+unilaterally). Per orchestrator instruction, this bookkeeping block is
+recorded here and does not gate reporting real, green implementation
+evidence. No `sdd-attempt settle` was attempted since `acquire` never reached
+`state: proceed`. A maintainer can run the `reset` command above (with a
+fresh `--expected-revision` taken from `gentle-ai sdd-attempt status` at the
+time, since this document's HEAD will have moved past `ecbe2e66…` once this
+commit lands).

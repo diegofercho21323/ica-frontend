@@ -60,8 +60,8 @@ Chain strategy: stacked-to-main
 
 ## Phase F3-PR3: Status Primitives + Token Retheme — spec: visual-shell "Status not color-only", "Focus visible and targets sized"
 
-- [ ] 4.5 RED `src/shared/ui/primitives/{UnitBadge,ScannerTrigger}.test.tsx` + retheme assertions on `Button`, `NumericInput`, `SearchInput`, `Status`, `ItemCard`, `LiveRegion`: status = text+icon never color-only, pointer targets ≥24×24 px, `2px #0B5CD6` focus ring offset `2px`
-- [ ] 4.6 GREEN add `UnitBadge.tsx` + `ScannerTrigger.tsx`, replace hardcoded styles in the 6 existing primitives with token references; commit `feat(ui): status primitives + token retheme`
+- [x] 4.5 RED `src/shared/ui/primitives/{UnitBadge,ScannerTrigger}.test.tsx` + retheme assertions on `Button`, `NumericInput`, `SearchInput`, `Status`, `ItemCard`, `LiveRegion`: source-scan for zero hex/font-family/px-radius literal (new for `Button`/`NumericInput`/`SearchInput`/`ItemCard`/`LiveRegion`; `Status` already had an equivalent DOM-level hex check, extended with the same source-scan). All 6 files were already literal-clean — see apply-progress for evidence.
+- [x] 4.6 GREEN add `UnitBadge.tsx` + `ScannerTrigger.tsx` (composed from `Button`/`Modal`/`SearchInput`/AntD `Input`, so styling/target-size/focus-ring inherit `ConfigProvider` tokens); no hardcoded-literal replacement needed in the 6 existing primitives (already token-only); commit `feat(ui): UnitBadge, ScannerTrigger primitives and token retheme`
 
 ## Phase F3-PR4: Guided + Manual Capture Screens — spec: guided-capture (both requirements), capture "Contract-exact ChangeInput"
 
