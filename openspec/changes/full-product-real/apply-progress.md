@@ -1236,20 +1236,21 @@ instruction:
   failure was itself part of confirming RED, not an infrastructure blocker,
   and resolved once `VitePWA(...)` landed in `vite.config.ts`.
 
-### Native attempt ledger
+### Native attempt ledger — settled cleanly (first clean settle since F3-PR2)
 
-Not run for this work unit — per the documented pattern for every prior
-work unit in this file (F1-PR3, F3-PR1, F3-PR3, F3-PR5, F4-PR2 all hit
-`blocked/maintainer_decision` on base-tree/objective drift unrelated to
-code correctness; F4-PR1 skipped the ledger call outright per the
-orchestrator's explicit instruction for that slice). Per this slice's
-assigning instructions ("If settle blocks on maintainer_decision ... record
-it in apply-progress.md risks and still report your real (green)
-verification results as the source of truth"), this executor did not
-additionally invoke `sdd-attempt acquire`/`settle` for this pass; the real,
-green verification evidence above (324/324, typecheck/lint/fsd/build all
-clean, 9 new focused tests) is the source of truth for this work unit's
-completion.
+`gentle-ai sdd-attempt acquire --work-unit "F5-PR1 installable PWA shell"
+--max-attempts 3 --max-changed-lines 400` → `state: proceed`, token
+`sha256:dd89d16fc4bebefe843daf5046abaa3a5a6d6b820943141387545686433590bb`.
+
+`gentle-ai sdd-attempt settle --outcome passed --evidence-revision
+sha256:5f18bd2c97954bb6f88199ebe14560e3f4ab86239bfae0f2ab81d8acd148a3d8`
+(sha256 of git HEAD `df9648f963231ee10d6e13cef03ffccf71981d7b`) →
+**`state: complete`**. No `maintainer_decision` block this time — the
+ledger's objective was freshly cleared before this slice started (per the
+orchestrator's launch note), unlike every prior work unit in this file
+(F1-PR3, F3-PR1, F3-PR3, F3-PR5, F4-PR2), which hit stale
+base-tree/objective drift. This is only the second work unit (after
+F3-PR2) to settle without a maintainer reset.
 
 ### Remaining tasks (out of scope for this work unit)
 
