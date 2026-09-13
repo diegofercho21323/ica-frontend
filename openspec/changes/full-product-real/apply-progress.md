@@ -749,16 +749,37 @@ in the test file (same convention as `CaptureTable.test.tsx` and
   remaining production callers after this change — left in place per
   explicit instruction, not deleted.
 
-### Native attempt ledger
+### Native attempt ledger — settle blocked on untracked-inventory digest (not a code failure)
 
-Acquired via `gentle-ai sdd-attempt acquire --work-unit "F3-PR5 wire
-guided/manual capture routing" --max-attempts 3 --max-changed-lines 300` →
-`state: proceed`, token
+`gentle-ai sdd-attempt acquire --work-unit "F3-PR5 wire guided/manual capture
+routing" --max-attempts 3 --max-changed-lines 300` → `state: proceed`, token
 `sha256:eb33ae56c0b4d4527309feb6fd51208bc81d48cf0243a0ce84f31f71d87fc078`.
-Settle is run after this commit lands (see orchestrator instructions);
-reviewable diff for this work unit (excluding this bookkeeping commit) is
-well under the 300-line cap set for this attempt. If settle reports the same
-maintainer-reset condition already documented three times above in this file
-(objective/base-tree drift the executor cannot clear unilaterally), that is
-ledger bookkeeping, not a code failure — the implementation evidence above
-stays valid regardless.
+
+`gentle-ai sdd-attempt settle --outcome passed --evidence-revision
+sha256:3bc28d90d9f2c25c1ae1d21ae9e28d3dd6343571878e795da73ef0cdc975a73d
+--untracked-scope exclude` → rejected: `untracked selection requires
+--untracked-scope and --expected-untracked-inventory; run "gentle-ai review
+status ... --next-transition" to obtain the canonical inventory`.
+
+Cause: this apply session ran `gentle-ai codegraph init` (CodeGraph guidance
+mandates lazy-init before structural exploration when `.codegraph/` is
+missing), which left an untracked `.codegraph/` directory in the worktree —
+unrelated to this task's code. The settle CLI now requires an
+`--expected-untracked-inventory` digest sourced from the review-lifecycle
+STATUS command. Per this executor's role boundary (apply must not enter the
+review/4R lifecycle — that is orchestrator-owned, post-verify), this was not
+chased further; `.codegraph/` was also deliberately left out of this
+commit's `git add` (see "Files changed" — only the 6 feature/doc files were
+staged). A maintainer or the orchestrator can supply the inventory digest
+(via the review-status preflight, or by `.gitignore`-ing `.codegraph/`) and
+resettle with the same evidence revision above.
+
+Retained attempt token:
+`sha256:eb33ae56c0b4d4527309feb6fd51208bc81d48cf0243a0ce84f31f71d87fc078`
+Evidence revision (sha256 of git HEAD `de35c79…`):
+`sha256:3bc28d90d9f2c25c1ae1d21ae9e28d3dd6343571878e795da73ef0cdc975a73d`
+
+The code work for task 4.9 is complete and fully verified (308/308,
+typecheck/lint/fsd clean); this ledger block does not change that. Reviewable
+diff for this work unit is 181 lines (excluding this doc-bookkeeping commit
+content), well under the 300-line cap set for this attempt.
