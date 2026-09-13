@@ -1,6 +1,7 @@
 import { TeamOutlined } from '@ant-design/icons'
 import { Alert, Card, Checkbox, Input, Typography } from 'antd'
 import { useState } from 'react'
+import type { Attempt } from '../../shared/api/inventory/models'
 import { Button } from '../../shared/ui/primitives/Button'
 import { LiveRegion } from '../../shared/ui/primitives/LiveRegion'
 import { useRecount } from './useRecount'
@@ -35,14 +36,18 @@ export type RecountScreenStrings = {
  * identities only — no quantity, stock, or variance ever reaches the DOM.
  * When `canRecount` is false the caller composes `RequireRole` above this
  * screen: an inline 403 mirror shows and no mutation can fire.
+ *
+ * Takes the real started `Attempt` (never a bare `attemptId` string) so the
+ * recount request always targets a genuine attempt and its child inherits
+ * the parent's `sessionId` — never a caller-invented stand-in.
  */
 export function RecountScreen({
-  attemptId,
+  attempt,
   lines,
   canRecount,
   strings,
 }: {
-  attemptId: string
+  attempt: Attempt
   lines: readonly RecountLineIdentity[]
   canRecount: boolean
   strings: RecountScreenStrings
@@ -76,7 +81,7 @@ export function RecountScreen({
     if (selected.length === 0 || isRecounting) return
     try {
       const child = await requestRecount({
-        attemptId,
+        attempt,
         lineCodes: [...selected],
         assignee,
       })

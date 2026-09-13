@@ -28,6 +28,7 @@ const attempts = new Map<string, AttemptRecord>()
 const submissions = new Map<string, { payloadHash: string; receipt: Receipt }>()
 const replacementKeys = new Set<string>()
 let attemptSequence = 0
+let sessionSequence = 0
 let replacementSequence = 0
 let currentUserId = 'operator-1'
 let currentRole: DemoRole = 'operator'
@@ -61,13 +62,27 @@ const hashPayload = (payload: string): string => {
   return hash.toString(16).padStart(8, '0')
 }
 
-const mintAttempt = (scopeId: string, mode: Attempt['mode'], operatorId: string): AttemptRecord => {
+const mintSessionId = (): string => {
+  sessionSequence += 1
+  return `sess-${sessionSequence}`
+}
+
+// `sessionId` links start -> history -> recount (tenant-context). Passing an
+// existing `sessionId` (recount's own case) keeps the child in its parent's
+// session; omitting it mints a genuinely new one (a fresh top-level start).
+const mintAttempt = (
+  scopeId: string,
+  mode: Attempt['mode'],
+  operatorId: string,
+  sessionId?: string,
+): AttemptRecord => {
   attemptSequence += 1
   const attempt: Attempt = {
     id: `att-${attemptSequence}-${scopeId}`,
     operatorId,
     scopeId,
     mode,
+    sessionId: sessionId ?? mintSessionId(),
   }
   const record: AttemptRecord = {
     attempt,
@@ -215,7 +230,12 @@ export const mockInventoryApi: InventoryApiPort = {
     if (selected.length === 0) {
       throw new HttpError(400, 'EMPTY_RECOUNT_SELECTION', 'Recount needs at least one line')
     }
-    const child = mintAttempt(parent.attempt.scopeId, parent.attempt.mode, input.assignee)
+    const child = mintAttempt(
+      parent.attempt.scopeId,
+      parent.attempt.mode,
+      input.assignee,
+      parent.attempt.sessionId,
+    )
     child.lines.clear()
     for (const code of selected) {
       const parentLine = parent.lines.get(code)
@@ -272,6 +292,7 @@ export const mockInventoryApi: InventoryApiPort = {
     submissions.clear()
     replacementKeys.clear()
     attemptSequence = 0
+    sessionSequence = 0
     replacementSequence = 0
     currentUserId = 'operator-1'
     currentRole = 'operator'

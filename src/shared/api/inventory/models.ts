@@ -33,6 +33,12 @@ export type Attempt = {
   operatorId: string
   scopeId: string
   mode: AttemptMode
+  /**
+   * Links start → history → recount (tenant-context "session_id links the
+   * loop"). A recount child shares its parent's `sessionId`: history/recount
+   * reads key by this value, never by a bare `attempt_id` inference.
+   */
+  sessionId: string
 }
 export type CaptureChange = {
   lineCode: string

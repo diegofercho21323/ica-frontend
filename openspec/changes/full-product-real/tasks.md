@@ -79,8 +79,8 @@ Chain strategy: stacked-to-main
 
 ## Phase F4-PR2: Session-Scoped Recount + History — spec: tenant-context "session_id links the loop", access "RequireRole mirrors server"
 
-- [ ] 5.3 RED extend `src/features/recount/useSubmissionHistory.test.tsx` + `src/features/recount/RecountScreen.test.tsx`: history/recount query by `session_id` (never bare `attempt_id` inference), `RequireRole` leader gate on recount, non-leader `403` fires no mutation
-- [ ] 5.4 GREEN thread `session_id` from start-attempt through `src/features/recount/useSubmissionHistory.ts` + `useRecount.ts`; apply leader gating; commit `feat(recount): session-scoped history + recount`
+- [x] 5.3 RED extend `src/features/recount/useSubmissionHistory.test.tsx` + `src/features/recount/RecountScreen.test.tsx`: history/recount query by `session_id` (never bare `attempt_id` inference) — `Attempt` had no `sessionId` field at all, so this was genuine RED; `RequireRole` leader gate on recount + non-leader `403` fires no mutation were already fully covered (`RequireRole.test.tsx` 3/3, `RecountScreen.test.tsx`'s `canRecount: false` case) — see apply-progress audit table
+- [x] 5.4 GREEN threaded `session_id` from start-attempt through `src/features/recount/useSubmissionHistory.ts` + `useRecount.ts`: added `sessionId: string` to `Attempt`, minted deterministically (`sess-<n>`) at `startAttempt` and inherited by `createRecount`'s child from its parent; both hooks (and `RecountScreen`) now take the real started `Attempt` object instead of a bare `attemptId` string, so `sessionId` can never be caller-invented. Leader gating verified already correct (no `RequireRole` composition needed at a call site — none exists yet, out of scope). commit `feat(recount): session-scoped history + recount`
 
 ## Phase F5-PR1: Installable PWA Shell — spec: offline-outbox "Installable PWA shell"
 

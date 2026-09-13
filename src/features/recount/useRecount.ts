@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
 import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import { HttpError } from '../../shared/api/inventory/errors'
+import type { Attempt } from '../../shared/api/inventory/models'
 
 export type RecountRequest = {
-  attemptId: string
+  attempt: Attempt
   lineCodes: string[]
   assignee: string
 }
@@ -13,6 +14,10 @@ export type RecountRequest = {
  * role (403) and rejects empty selections (400); the client pre-checks the
  * empty case so no request fires at all. Children restart blind: the mock
  * projects identity + unit only, quantities restart empty.
+ *
+ * Takes the real started `Attempt` (never a bare `attemptId` string) so the
+ * mutation targets a genuine attempt; the mock keeps the resulting child in
+ * the parent's `sessionId` — recount never starts a disconnected session.
  */
 export function useRecount() {
   const api = useInventoryApi()
@@ -25,7 +30,7 @@ export function useRecount() {
           'Recount needs at least one line',
         )
       }
-      return api.createRecount(request.attemptId, {
+      return api.createRecount(request.attempt.id, {
         lineCodes: request.lineCodes,
         assignee: request.assignee,
       })

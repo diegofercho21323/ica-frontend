@@ -51,13 +51,16 @@ describe('useRecount (F4-PR2)', () => {
     const parent = await lockedAttempt()
 
     const child = await result.current.requestRecount({
-      attemptId: parent.id,
+      attempt: parent,
       lineCodes: ['SKU-001', 'SKU-999'],
       assignee: 'operator-1',
     })
 
     expect(child.id).not.toBe(parent.id)
     expect(child.operatorId).toBe('operator-1')
+    // Recount continues the same counting session — never a freshly minted,
+    // disconnected one.
+    expect(child.sessionId).toBe(parent.sessionId)
     const lines = await mockInventoryApi.getOperatorLines(child.id)
     // Unknown codes are filtered; the subset carries one blind line.
     expect(lines).toHaveLength(1)
@@ -75,17 +78,19 @@ describe('useRecount (F4-PR2)', () => {
     const parent = await lockedAttempt()
 
     const first = await result.current.requestRecount({
-      attemptId: parent.id,
+      attempt: parent,
       lineCodes: ['SKU-001'],
       assignee: 'operator-1',
     })
     const second = await result.current.requestRecount({
-      attemptId: parent.id,
+      attempt: parent,
       lineCodes: ['SKU-002'],
       assignee: 'operator-1',
     })
 
     expect(first.id).not.toBe(second.id)
+    expect(first.sessionId).toBe(parent.sessionId)
+    expect(second.sessionId).toBe(parent.sessionId)
     // The parent is untouched by either recount: same identities, same
     // states, and still locked against edits.
     const parentLines = await mockInventoryApi.getOperatorLines(parent.id)
@@ -107,7 +112,7 @@ describe('useRecount (F4-PR2)', () => {
     const parent = await lockedAttempt()
 
     const failure = await result.current
-      .requestRecount({ attemptId: parent.id, lineCodes: [], assignee: 'operator-1' })
+      .requestRecount({ attempt: parent, lineCodes: [], assignee: 'operator-1' })
       .catch((error: unknown) => error)
 
     expect(failure).toMatchObject({ status: 400 })
@@ -121,7 +126,7 @@ describe('useRecount (F4-PR2)', () => {
     const parent = await lockedAttempt()
 
     const failure = await result.current
-      .requestRecount({ attemptId: parent.id, lineCodes: ['SKU-001'], assignee: 'operator-1' })
+      .requestRecount({ attempt: parent, lineCodes: ['SKU-001'], assignee: 'operator-1' })
       .catch((error: unknown) => error)
 
     expect(failure).toMatchObject({ status: 403 })

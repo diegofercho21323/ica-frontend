@@ -913,3 +913,148 @@ for this work unit's completion.
 ### Remaining tasks (out of scope for this work unit)
 
 - F4-PR2 (5.3–5.4), F5-PR1..3 (6.1–6.6) — untouched.
+
+---
+
+## Work Unit: F4-PR2 (tasks 5.3 + 5.4) — Session-scoped recount + history
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design`, `apple-visual-design` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file).
+
+### Discovery — the recount base already existed, `session_id` did not
+
+`src/features/recount/{RecountScreen.tsx,useRecount.ts,useSubmissionHistory.ts}`
+already existed with passing tests (a prior untracked session, same pattern
+as F4-PR1's queue base). `RecountScreen.tsx` had just been visually restyled
+(Card/Checkbox/Input/icons) and was left untouched here. Full audit against
+task 5.3's three required assertions before touching anything:
+
+| Requirement | Already covered? |
+|---|---|
+| `RequireRole` leader gate on recount | ✅ — `RequireRole.tsx` exists, `RequireRole.test.tsx` 3/3 (leader passes, operator + demo-admin blocked) |
+| Non-leader `403` fires no mutation | ✅ — `RecountScreen.test.tsx`'s `canRecount: false` case asserts the inline mirror renders and `createRecount` is never called; `useRecount.test.tsx` asserts the mock's own 403 for a non-leader session |
+| History/recount query by `session_id`, never bare `attempt_id` inference | ❌ — `useSubmissionHistory` already accepted a `sessionId` **string** parameter and keyed the query by it, but nothing in the domain model, mock, or `startAttempt` ever minted a real `session_id`. Every existing test passed an arbitrary literal (`'sess-1'`, `'sess-9'`) — nothing proved the value came from a genuine started attempt or that a recount child stayed in its parent's session. **This is the one real gap this work unit closes.** |
+
+`RequireRole` was never composed above `RecountScreen` at any call site because
+no page/route wires `RecountScreen` into the app yet (mirrors F3-PR4's
+`GuidedCapture`/`ManualCapture` before their F3-PR5 routing pass — no analogous
+routing task exists in tasks.md for recount, so wiring a page was out of
+scope here). Per the assigned instruction's explicit fallback ("or verify
+it's already correctly gated and just needs the session_id threading"), no
+`RequireRole` composition was added; `RecountScreen`'s own `canRecount` prop
+already is the tested UX-mirror gate a future call site will feed from
+`RequireRole`/`session.role`.
+
+### Approach
+
+- **`Attempt.sessionId: string`** (new field, `models.ts`) — links
+  start → history → recount per the `tenant-context` spec.
+- **`mock.ts`**: added a `sessionSequence` counter + `mintSessionId()`
+  (`sess-<n>`, matching the existing deterministic `att-<n>-<scope>`
+  convention — no `crypto.randomUUID`, since `Attempt` ids are already
+  sequential, not UUIDs). `mintAttempt` takes an optional `sessionId`:
+  omitted → mints a new one (`startAttempt`, a fresh top-level session);
+  supplied → reused as-is (`createRecount` passes `parent.attempt.sessionId`,
+  so a recount child always continues its parent's session, never starts a
+  disconnected one). `resetDemo` resets the new counter.
+- **`useSubmissionHistory.ts`**: signature changed from
+  `{ sessionId: string; attemptId: string }` to `{ attempt: Attempt }`,
+  deriving both internally (`attempt.id`, `attempt.sessionId`). This is the
+  actual enforcement point for "never bare `attempt_id` inference": a caller
+  can no longer pass an invented session string, only a real started
+  `Attempt`.
+- **`useRecount.ts`**: `RecountRequest.attemptId: string` → `RecountRequest.attempt: Attempt`
+  for the same reason on the write side; `api.createRecount(request.attempt.id, ...)`
+  is unchanged at the port boundary.
+- **`RecountScreen.tsx`**: prop `attemptId: string` → `attempt: Attempt`,
+  passed straight through to `requestRecount`. No visual change — the F3-era
+  restyle (`Card`/`Checkbox`/`Input`/icons) is untouched.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 5.3/5.4 `session_id` on read | `src/features/recount/useSubmissionHistory.test.tsx` | Integration (RTL hook) | ✅ baseline 4/4 pass | ✅ 2/2 fail (`historyKey`/`isSuccess` false — new `attempt` prop didn't exist, `sessionId` undefined) | ✅ 5/5 pass | ✅ real-attempt case (mint→session truthy, ≠ id) + recount-child-inherits-parent-session case + existing 409/replacement-key cases re-verified against the new `attempt`-shaped call | ➖ none needed |
+| 5.3/5.4 `attempt` prop on write | `src/features/recount/RecountScreen.test.tsx` | Integration (RTL) | ✅ baseline 3/3 pass | ✅ 1/1 fail (`createCalls[0].attemptId` was `undefined` — prop renamed) | ✅ 3/3 pass | ✅ create-flow / disabled-until-selected / non-leader-403-no-mutation, all re-run against the new prop shape | ➖ none needed |
+| 5.4 write-path session continuity | `src/features/recount/useRecount.test.tsx` | Integration (RTL hook) | ✅ baseline 4/4 pass (call-shape only, no `sessionId` assertions existed) | N/A — extended an already-green suite with 3 new `sessionId` assertions after the model field landed (approval-style triangulation, not a fresh RED/GREEN cycle) | ✅ 4/4 pass | ✅ single-recount + two-sequential-recounts both assert `child.sessionId === parent.sessionId` | ➖ none needed |
+
+- **Approval tests**: `useRecount.test.tsx`'s 3 new `sessionId` assertions —
+  added after the model/mock change landed, to triangulate session
+  continuity across both the single- and double-recount paths without
+  re-running a separate RED cycle for a file not named in the assigned RED
+  scope (the model field change was the actual RED-driving edit, proven in
+  `useSubmissionHistory.test.tsx`/`RecountScreen.test.tsx` above).
+- **Pure functions created**: 1 (`mintSessionId`).
+- Triangulation: session continuity is proven from three independent angles —
+  a single recount, two sequential recounts from the same parent, and a
+  `useSubmissionHistory` read keyed by the child's inherited `sessionId`.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/features/recount src/shared/api/inventory` → **54/54 pass, 7 files** (was 53/53 at baseline) |
+| Full suite | `npm run test:run` → 1 unrelated flaky timeout in `tests/app.smoke.test.tsx`'s keyboard-login test under parallel load (same known flake documented under F3-PR3/F3-PR4); `npm run test:run -- --no-file-parallelism` → **315/315 pass, 52 files** clean (baseline 314/314) |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (131 modules, 548 deps) |
+| Runtime harness | RTL render + `userEvent` through the real `useInventoryApi()`/mock stack (`RecountScreen.test.tsx`'s checkbox-select → assignee-type → submit flow) is the runtime boundary; `useSubmissionHistory.test.tsx`'s new case drives a real `startAttempt` → `saveBatch` → `finalize` → `createRecount` sequence against the mock, not a stub. No network path (mock port). |
+| Rollback boundary | Revert this commit. Touches only `src/features/recount/{RecountScreen.tsx,RecountScreen.test.tsx,useRecount.ts,useRecount.test.tsx,useSubmissionHistory.ts,useSubmissionHistory.test.tsx}` + `src/shared/api/inventory/{models.ts,mock.ts}`. No primitive, submission-queue, capture, or routing file touched. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/shared/api/inventory/models.ts` | Modified | added `Attempt.sessionId: string` |
+| `src/shared/api/inventory/mock.ts` | Modified | `sessionSequence` counter + `mintSessionId()`; `mintAttempt` accepts optional `sessionId` (new when omitted, inherited when supplied); `createRecount` passes the parent's `sessionId`; `resetDemo` resets the counter |
+| `src/features/recount/useSubmissionHistory.ts` | Modified | `{ sessionId, attemptId }` → `{ attempt: Attempt }`, deriving both internally |
+| `src/features/recount/useSubmissionHistory.test.tsx` | Modified | all calls updated to the `attempt`-shaped signature; +1 test proving real session minting + parent/child session continuity |
+| `src/features/recount/useRecount.ts` | Modified | `RecountRequest.attemptId` → `RecountRequest.attempt: Attempt` |
+| `src/features/recount/useRecount.test.tsx` | Modified | all calls updated to `{ attempt: parent, ... }`; +3 `sessionId` continuity assertions |
+| `src/features/recount/RecountScreen.tsx` | Modified | prop `attemptId: string` → `attempt: Attempt`; no visual change |
+| `src/features/recount/RecountScreen.test.tsx` | Modified | fixture `ATTEMPT: Attempt` replaces the bare `attemptId` string; stub `createRecount` return includes `sessionId` |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 5.3 + 5.4 `[x]` with evidence notes documenting the prior-session discovery |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design / tasks.md
+
+- tasks.md's 5.3/5.4 wording assumed `RequireRole` needed composing above
+  `RecountScreen` "at the call site" — no such call site exists yet
+  (`RecountScreen`/`RequireRole` are not wired into any route), matching the
+  explicit fallback the assigning instruction allowed ("or verify it's
+  already correctly gated and just needs the session_id threading"). No
+  routing task for recount exists in tasks.md (unlike F3-PR4→F3-PR5 for
+  capture), so adding one was out of scope for this slice.
+- `session_id` is a client-side mock construct (deterministic `sess-<n>`),
+  not the backend `POST /sessions` endpoint the `tenant-context` spec
+  describes — that endpoint is explicitly F2-gated and not built yet
+  (`design.md`: "F2–F5 target (gated, not built in F1): ... `session_id`
+  linking start→history→recount"). This mock-layer implementation satisfies
+  the frontend contract (`useSubmissionHistory`/`useRecount` never accept a
+  bare `attemptId` or an invented session string) and is swappable at the
+  adapter boundary once the real endpoint lands, mirroring the mock-first
+  pattern used throughout F1–F4.
+
+### Issues found
+
+- None. The `RecountScreen.test.tsx`/`useSubmissionHistory.test.tsx` RED
+  failures (`attemptId: undefined`, `isSuccess` staying `false`,
+  `parent.sessionId` `undefined`) were confirmed before any production edit.
+
+### Native attempt ledger
+
+`gentle-ai sdd-attempt acquire --work-unit "F4-PR2 session-scoped recount +
+history" --max-attempts 3 --max-changed-lines 450` → `state: proceed`, token
+`sha256:487629010b197b6955a4e101df5a45e838dcb85bb61d489f7fec28a694dd5ae7`.
+Settle to be run after this commit lands; per the prior five work units'
+documented pattern (F1-PR3, F3-PR1, F3-PR3, F3-PR5, F4-PR1), this ledger has
+consistently returned `blocked/maintainer_decision` on base-tree/objective
+drift unrelated to code correctness — if that recurs here, it is recorded as
+a risk below and the real, green verification evidence above (315/315,
+typecheck/lint/fsd clean, 187-line diff well under the 450-line cap) remains
+the source of truth for this work unit's completion.
+
+### Remaining tasks (out of scope for this work unit)
+
+- F5-PR1..3 (6.1–6.6) — untouched.

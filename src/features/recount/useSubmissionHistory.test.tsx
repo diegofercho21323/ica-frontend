@@ -5,9 +5,18 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { InventoryApiProvider } from '../../shared/api/inventory/api-context'
 import { HttpError } from '../../shared/api/inventory/errors'
 import { mockInventoryApi } from '../../shared/api/inventory/mock'
-import type { Receipt } from '../../shared/api/inventory/models'
+import type { Attempt, Receipt } from '../../shared/api/inventory/models'
 import type { InventoryApiPort } from '../../shared/api/inventory/port'
 import { sessionHistoryKey, useSubmissionHistory } from './useSubmissionHistory'
+
+const fakeAttempt = (overrides: Partial<Attempt> = {}): Attempt => ({
+  id: 'att-9',
+  operatorId: 'operator-1',
+  scopeId: 'scope-centro',
+  mode: 'guided',
+  sessionId: 'sess-9',
+  ...overrides,
+})
 
 function wrapper(api: InventoryApiPort) {
   const client = new QueryClient({
@@ -37,26 +46,58 @@ describe('useSubmissionHistory (F4-PR2)', () => {
     await mockInventoryApi.resetDemo()
   })
 
-  it('keys history reads by session_id and exposes the terminal receipt', async () => {
+  it('keys history reads by the started attempt session_id and exposes the terminal receipt', async () => {
     const { attempt, receipt } = await submittedAttempt('history-key')
-    const { result } = renderHook(
-      () => useSubmissionHistory({ sessionId: 'sess-1', attemptId: attempt.id }),
-      { wrapper: wrapper(mockInventoryApi) },
-    )
+    const { result } = renderHook(() => useSubmissionHistory({ attempt }), {
+      wrapper: wrapper(mockInventoryApi),
+    })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.historyKey).toEqual([
       'submission-history',
-      'sess-1',
+      attempt.sessionId,
       attempt.id,
     ])
-    expect(sessionHistoryKey('sess-1')).toEqual(['submission-history', 'sess-1'])
-    expect(sessionHistoryKey('sess-2')).not.toEqual(sessionHistoryKey('sess-1'))
+    expect(sessionHistoryKey(attempt.sessionId)).toEqual([
+      'submission-history',
+      attempt.sessionId,
+    ])
+    expect(sessionHistoryKey('sess-2')).not.toEqual(sessionHistoryKey(attempt.sessionId))
     expect(result.current.versions).toHaveLength(1)
     expect(result.current.versions[0]).toMatchObject({ v: 1 })
     expect(result.current.versions[0]?.submission).toEqual(receipt)
     expect(receipt.payload_hash.length).toBeGreaterThan(0)
     expect(receipt.erp_reference).toBe(`erp-${attempt.id}-v1`)
+  })
+
+  it('mints a real session_id at start-attempt and a recount child never invents a new one', async () => {
+    const parent = await mockInventoryApi.startAttempt('scope-centro', 'guided')
+    await mockInventoryApi.saveBatch(parent.id, 'cap-recount', [
+      { lineCode: 'SKU-001', quantity: '5', state: 'COUNTED' },
+    ])
+    await mockInventoryApi.finalize(parent.id, { confirm_uncounted: true })
+    await mockInventoryApi.loginDemo({ username: 'lider', password: 'lider' })
+    const child = await mockInventoryApi.createRecount(parent.id, {
+      lineCodes: ['SKU-001'],
+      assignee: 'operator-2',
+    })
+
+    expect(parent.sessionId).toBeTruthy()
+    expect(parent.sessionId).not.toBe(parent.id)
+    // Recount continues the same counting session — never a bare attempt_id
+    // stand-in and never a freshly minted, disconnected session.
+    expect(child.sessionId).toBe(parent.sessionId)
+    expect(child.id).not.toBe(parent.id)
+
+    const { result } = renderHook(() => useSubmissionHistory({ attempt: child }), {
+      wrapper: wrapper(mockInventoryApi),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.historyKey).toEqual([
+      'submission-history',
+      parent.sessionId,
+      child.id,
+    ])
   })
 
   it('retries an unchanged payload with the same key in exactly one call', async () => {
@@ -69,10 +110,9 @@ describe('useSubmissionHistory (F4-PR2)', () => {
         return mockInventoryApi.submit(attemptId, key)
       },
     }
-    const { result } = renderHook(
-      () => useSubmissionHistory({ sessionId: 'sess-1', attemptId: attempt.id }),
-      { wrapper: wrapper(api) },
-    )
+    const { result } = renderHook(() => useSubmissionHistory({ attempt }), {
+      wrapper: wrapper(api),
+    })
 
     const receipt = await result.current.resubmitSameKey(attempt.id, 'retry-key')
     expect(calls).toEqual([{ attemptId: attempt.id, key: 'retry-key' }])
@@ -102,10 +142,9 @@ describe('useSubmissionHistory (F4-PR2)', () => {
         return `${key}-replacement-1`
       },
     }
-    const { result } = renderHook(
-      () => useSubmissionHistory({ sessionId: 'sess-9', attemptId: 'att-9' }),
-      { wrapper: wrapper(api) },
-    )
+    const { result } = renderHook(() => useSubmissionHistory({ attempt: fakeAttempt() }), {
+      wrapper: wrapper(api),
+    })
 
     const blocked = await result.current.resubmitSameKey('att-9', 'clash-key')
     expect(blocked).toEqual({ needsRecovery: true, key: 'clash-key' })
@@ -133,10 +172,9 @@ describe('useSubmissionHistory (F4-PR2)', () => {
         return `${key}-replacement-1`
       },
     }
-    const { result } = renderHook(
-      () => useSubmissionHistory({ sessionId: 'sess-9', attemptId: 'att-9' }),
-      { wrapper: wrapper(api) },
-    )
+    const { result } = renderHook(() => useSubmissionHistory({ attempt: fakeAttempt() }), {
+      wrapper: wrapper(api),
+    })
 
     await expect(
       result.current.recoverWithReplacementKey('att-9', 'clash-key', {

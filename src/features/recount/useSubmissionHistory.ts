@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import { HttpError } from '../../shared/api/inventory/errors'
-import type { AttemptVersion, Receipt } from '../../shared/api/inventory/models'
+import type { Attempt, AttemptVersion, Receipt } from '../../shared/api/inventory/models'
 
 /**
  * History/recount reads are keyed by `session_id`, never bare `attempt_id`
@@ -22,16 +22,16 @@ const isConflict = (error: unknown): error is HttpError =>
  * (F4-PR2). Retry reuses the receipt key unchanged; a 409 never auto-retries
  * — recovery goes through `recoverWithReplacementKey`, which refuses to act
  * without explicit confirmation.
+ *
+ * Takes the real started `Attempt` (never a bare `attemptId`/free-form
+ * `sessionId` string) so `sessionId` is always the one minted at
+ * start-attempt and shared by any recount child — the caller cannot invent
+ * or infer it.
  */
-export function useSubmissionHistory({
-  sessionId,
-  attemptId,
-}: {
-  sessionId: string
-  attemptId: string
-}) {
+export function useSubmissionHistory({ attempt }: { attempt: Attempt }) {
   const api = useInventoryApi()
   const queryClient = useQueryClient()
+  const { id: attemptId, sessionId } = attempt
   const historyKey = [...sessionHistoryKey(sessionId), attemptId] as const
 
   const historyQuery = useQuery({

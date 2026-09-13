@@ -5,12 +5,21 @@ import type { PropsWithChildren } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { InventoryApiProvider } from '../../shared/api/inventory/api-context'
 import { mockInventoryApi } from '../../shared/api/inventory/mock'
+import type { Attempt } from '../../shared/api/inventory/models'
 import type { InventoryApiPort } from '../../shared/api/inventory/port'
 import {
   RecountScreen,
   type RecountLineIdentity,
   type RecountScreenStrings,
 } from './RecountScreen'
+
+const ATTEMPT: Attempt = {
+  id: 'att-1-scope-centro',
+  operatorId: 'operator-1',
+  scopeId: 'scope-centro',
+  mode: 'guided',
+  sessionId: 'sess-1',
+}
 
 const LINES: RecountLineIdentity[] = [
   { code: 'SKU-001', name: 'Caja demo', unit: 'UN' },
@@ -43,11 +52,11 @@ function Providers({ api, children }: PropsWithChildren<{ api: InventoryApiPort 
 
 const renderScreen = (
   api: InventoryApiPort,
-  props: { canRecount: boolean; attemptId?: string },
+  props: { canRecount: boolean; attempt?: Attempt },
 ) =>
   render(
     <RecountScreen
-      attemptId={props.attemptId ?? 'att-1-scope-centro'}
+      attempt={props.attempt ?? ATTEMPT}
       lines={LINES}
       canRecount={props.canRecount}
       strings={STRINGS}
@@ -66,7 +75,13 @@ describe('RecountScreen (F4-PR2)', () => {
           lineCodes: [...input.lineCodes],
           assignee: input.assignee,
         })
-        return { id: 'att-2-scope-centro', operatorId: input.assignee, scopeId: 'scope-centro', mode: 'guided' }
+        return {
+          id: 'att-2-scope-centro',
+          operatorId: input.assignee,
+          scopeId: 'scope-centro',
+          mode: 'guided',
+          sessionId: ATTEMPT.sessionId,
+        }
       },
     }
     const user = userEvent.setup()
@@ -87,7 +102,9 @@ describe('RecountScreen (F4-PR2)', () => {
     expect(await screen.findByText('Blind recount att-2-scope-centro created.')).toBeInTheDocument()
     expect(createCalls).toEqual([
       {
-        attemptId: 'att-1-scope-centro',
+        // Derived from `attempt.id`, never a caller-supplied bare string —
+        // the prop type only accepts a real started `Attempt`.
+        attemptId: ATTEMPT.id,
         lineCodes: ['SKU-001', 'SKU-002'],
         assignee: 'operator-1',
       },
