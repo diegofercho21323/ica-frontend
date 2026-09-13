@@ -626,3 +626,139 @@ asserts the `onClose` callback, not DOM removal or prop reflection).
 
 - None beyond the jsdom `Modal` exit-animation limitation documented above
   (test-technique note, not a production defect).
+
+---
+
+## Work Unit: F3-PR5 (task 4.9) — Wire guided/manual capture routing (orchestrator-identified gap-closure)
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design`, `sdd-apply`/`sdd-phase-common` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file).
+
+### Why this work unit exists
+
+F3-PR4 built `GuidedCapture` and `ManualCapture` but never wired either into a
+route: `AttemptCapturePage` (`/capture/:attemptId`) still rendered the old
+`CaptureTable` unconditionally. The orchestrator flagged this as the
+highest-value remaining gap — the app showed none of the F3 visual work
+without this fix — and added it as task 4.9 under a new Phase F3-PR5 section
+(not present in the tasks.md this apply batch started from).
+
+### Completed tasks
+
+| Task | State | Commit |
+|------|-------|--------|
+| 4.9 RED/GREEN — thread `attempt.mode` through the capture route, route `AttemptCapturePage` by mode | [x] | `feat(capture): route guided and manual capture screens by attempt mode` |
+
+### Approach
+
+- **`BodegasList.tsx`**: `startMutation.onSuccess` already had `attempt.mode`
+  in scope; changed `navigate(`/capture/${attempt.id}`)` to
+  `navigate(`/capture/${attempt.id}?mode=${attempt.mode}`)`. A query param
+  was chosen over router `state` because `state` does not survive a reload —
+  the explicit failure mode this task calls out ("refresh-safe carrier").
+- **`AttemptCapturePage`** (`src/pages/screens.tsx`): reads `attemptId` from
+  `useParams()` and `mode` from `useSearchParams()`. `mode === 'manual'`
+  renders `ManualCapture`; anything else (including missing/invalid, e.g. a
+  stale bookmark predating this query param) falls back to `GuidedCapture`
+  — chosen over a "start a new attempt" prompt because the attempt already
+  exists and is addressable by `attemptId`; failing safe to the fuller
+  guided assistant loses no capability. A defensive `!attemptId` branch
+  (reusing the existing `review.notFound` key, matching `ReviewPage`'s
+  pattern for a missing route param) covers the type-level `attemptId?:
+  string` case, though the router always supplies it for a matched
+  `capture/:attemptId` route.
+- `CaptureTable` was **not deleted** — per explicit scope, checked all
+  remaining references first (`rg -n CaptureTable src`): only its own three
+  test files import it after this change. Left in place as documented dead
+  code; auditing every caller before removal was out of scope for this slice.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.9 mode query param | `src/features/bodegas/BodegasList.start.test.tsx` | Integration (RTL router) | ✅ baseline 2/2 pass | ✅ RED — 2/2 fail (`search` was `''`, expected `?mode=guided`/`?mode=manual`) | ✅ 2/2 pass | ✅ guided case + manual case (different `AttemptMode` values) already present as the two existing scenarios | ➖ none needed |
+| 4.9 `AttemptCapturePage` routing | `src/pages/AttemptCapturePage.test.tsx` | Integration (RTL router) | N/A (new file) | ✅ RED — 4/4 fail (old `CaptureTable` unconditional render; `Avance N de N` / `Escanear o buscar` never appeared) | ✅ 4/4 pass | ✅ guided renders + manual renders + missing-mode fallback + invalid-mode fallback (4 distinct branches through the same `mode` conditional) | ➖ none needed |
+
+- **Approval tests**: none — this is new routing behavior, not a refactor of
+  existing behavior (the previous `CaptureTable` render had no test coverage
+  for the mode-routing case since it never existed).
+- **Pure functions created**: 0 (the `mode === 'manual' ? 'manual' : 'guided'`
+  fallback is a one-line conditional, not extracted — single call site,
+  matches the file's existing style for e.g. `CapturePage`'s inline
+  `<Navigate>`).
+- Triangulation: all 4 branches of the `AttemptCapturePage` mode conditional
+  (guided / manual / missing / invalid) are independently exercised; missing
+  and invalid both hit the same fallback path deliberately (proving the
+  fallback is a real default, not merely "guided happens to be first").
+
+### FSD boundary note (test-only)
+
+The first draft of `AttemptCapturePage.test.tsx` imported the real i18n
+singleton from `../app/i18n/config` (mirroring `tests/app.smoke.test.tsx`'s
+pattern) to avoid retyping the `guidedCapture`/`manualCapture` translation
+keys. `npm run fsd` correctly rejected this: `src/pages/**` must not depend
+on `src/app/**`. Fixed by building a self-contained inline `i18next` instance
+in the test file (same convention as `CaptureTable.test.tsx` and
+`ManualCapture.test.tsx`), scoped to exactly the `capture`/`guidedCapture`/
+`manualCapture` keys the two screens' string-builders consume.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/pages/AttemptCapturePage.test.tsx src/features/bodegas/BodegasList.start.test.tsx src/features/bodegas/BodegasList.test.tsx --no-file-parallelism` → **10/10 pass, 3 files** |
+| Full suite | `npm run test:run -- --no-file-parallelism` → **308/308 pass, 52 files** (baseline 304/304, 51 files; +4 new tests, +1 new file) |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (130 modules, 529 deps) |
+| Runtime harness | RTL render + router navigation is the runtime boundary: `MemoryRouter` + `Routes` drives the real `useParams`/`useSearchParams` resolution exactly as the browser router would for `/capture/:attemptId?mode=...`. No network path (mock port). |
+| Rollback boundary | Revert this commit. Touches only `src/features/bodegas/BodegasList.tsx` (1 line), `src/features/bodegas/BodegasList.start.test.tsx` (+2 assertions), `src/pages/screens.tsx` (`AttemptCapturePage` + imports), `src/pages/AttemptCapturePage.test.tsx` (new). `CaptureTable.tsx`, `GuidedCapture.tsx`, `ManualCapture.tsx`, and `useGuidedCapture.ts` are untouched. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/features/bodegas/BodegasList.tsx` | Modified | `navigate` call now appends `?mode=${attempt.mode}` |
+| `src/features/bodegas/BodegasList.start.test.tsx` | Modified | +2 assertions: `router.state.location.search` is `?mode=guided`/`?mode=manual` |
+| `src/pages/screens.tsx` | Modified | `AttemptCapturePage` reads `mode` via `useSearchParams()`, renders `GuidedCapture`/`ManualCapture` (was: unconditional `CaptureTable`); added a defensive missing-`attemptId` branch |
+| `src/pages/AttemptCapturePage.test.tsx` | Created | 4 tests: guided renders, manual renders, missing-mode fallback, invalid-mode fallback |
+| `openspec/changes/full-product-real/tasks.md` | Modified | new Phase F3-PR5 section, task 4.9 `[x]` with evidence |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design
+
+- Not anticipated by `design.md`'s "File Changes" table (scoped to F1) or by
+  the original tasks.md (task 4.9 did not exist before this apply batch —
+  added by the orchestrator as a gap-closure task). No semantic deviation
+  from F3-PR4's own design note, which explicitly named this exact gap
+  ("a future integration task should route `AttemptCapturePage` by
+  `attempt.mode`") as its own recommended follow-up.
+- `GuidedCapture.tsx`'s own now-fully-redundant internal `mode === 'manual'`
+  branch (documented as dead code under F3-PR4) is still not removed here —
+  `AttemptCapturePage` always calls `GuidedCapture` with `mode="guided"`
+  literally, never routing it to manual, so that internal branch remains
+  unreachable through this route. Removing it was not part of task 4.9's
+  scope (routing, not `GuidedCapture`'s internals) and risks touching
+  already-green, previously-unwired production code beyond this slice's
+  rollback boundary.
+
+### Issues found
+
+- None. `CaptureTable` audit (`rg -n CaptureTable src`) confirms it has no
+  remaining production callers after this change — left in place per
+  explicit instruction, not deleted.
+
+### Native attempt ledger
+
+Acquired via `gentle-ai sdd-attempt acquire --work-unit "F3-PR5 wire
+guided/manual capture routing" --max-attempts 3 --max-changed-lines 300` →
+`state: proceed`, token
+`sha256:eb33ae56c0b4d4527309feb6fd51208bc81d48cf0243a0ce84f31f71d87fc078`.
+Settle is run after this commit lands (see orchestrator instructions);
+reviewable diff for this work unit (excluding this bookkeeping commit) is
+well under the 300-line cap set for this attempt. If settle reports the same
+maintainer-reset condition already documented three times above in this file
+(objective/base-tree drift the executor cannot clear unilaterally), that is
+ledger bookkeeping, not a code failure — the implementation evidence above
+stays valid regardless.

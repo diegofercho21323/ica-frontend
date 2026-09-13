@@ -19,7 +19,7 @@ export function BodegasList() {
     mutationFn: (scopeId: string) => mockInventoryApi.startAttempt(scopeId, mode),
     onSuccess: (attempt) => {
       setStartError(null)
-      void navigate(`/capture/${attempt.id}`)
+      void navigate(`/capture/${attempt.id}?mode=${attempt.mode}`)
     },
     onError: () => {
       setStartError(t('attempt.startError'))

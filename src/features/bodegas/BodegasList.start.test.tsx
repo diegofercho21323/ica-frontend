@@ -83,6 +83,7 @@ describe('BodegasList attempt entry', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/capture/att-1-scope-centro')
     })
+    expect(router.state.location.search).toBe('?mode=guided')
     expect(await screen.findByText('Captura del intento')).toBeVisible()
   })
 
@@ -106,5 +107,6 @@ describe('BodegasList attempt entry', () => {
       expect(startAttempt).toHaveBeenCalledWith('scope-norte', 'manual')
     })
     expect(router.state.location.pathname).toBe('/capture/att-1-scope-norte')
+    expect(router.state.location.search).toBe('?mode=manual')
   })
 })

@@ -1,11 +1,13 @@
 import { Alert, Card, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useLocation, useParams } from 'react-router'
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router'
 import { LoginForm } from '../features/access/LoginForm'
 import { useSession } from '../features/access/SessionContext'
 import { ReviewScreen } from '../features/attempts/ReviewScreen'
 import { BodegasList } from '../features/bodegas/BodegasList'
-import { CaptureTable } from '../features/capture/CaptureTable'
+import { GuidedCapture } from '../features/capture/guided/GuidedCapture'
+import { ManualCapture } from '../features/capture/manual/ManualCapture'
+import { buildGuidedCaptureStrings, buildManualCaptureStrings } from '../features/capture/i18n'
 import { DashboardKpis } from '../features/dashboard/DashboardKpis'
 
 export function LoginPage() {
@@ -42,11 +44,39 @@ export function CapturePage() {
   return <Navigate to="/bodegas" replace />
 }
 
+/**
+ * Routes to the two Tallycore capture screens (F3-PR4) by the attempt's
+ * `mode` (`guided`/`manual`), carried as `?mode=` so it survives a reload
+ * (router `state` does not). A missing or invalid `mode` — e.g. a stale
+ * bookmark predating this query param — falls back to guided capture rather
+ * than crashing.
+ */
 export function AttemptCapturePage() {
+  const { t } = useTranslation()
   const { attemptId } = useParams()
+  const [searchParams] = useSearchParams()
+
+  if (!attemptId) {
+    return (
+      <section>
+        <Alert message={t('review.notFound')} role="alert" type="error" />
+      </section>
+    )
+  }
+
+  const mode = searchParams.get('mode') === 'manual' ? 'manual' : 'guided'
+
   return (
     <Card>
-      <CaptureTable attemptId={attemptId} />
+      {mode === 'manual' ? (
+        <ManualCapture attemptId={attemptId} strings={buildManualCaptureStrings(t)} />
+      ) : (
+        <GuidedCapture
+          attemptId={attemptId}
+          mode="guided"
+          strings={buildGuidedCaptureStrings(t)}
+        />
+      )}
     </Card>
   )
 }
