@@ -1,3 +1,5 @@
+import { FileSearchOutlined } from '@ant-design/icons'
+import { Card } from 'antd'
 import { useEffect, useId, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Button } from '../../../shared/ui/primitives/Button'
 import { ItemCard } from '../../../shared/ui/primitives/ItemCard'
@@ -169,8 +171,9 @@ export function ManualCapture({ attemptId, strings }: ManualCaptureProps) {
     <section
       aria-busy={guided.isSaving}
       onKeyDown={onSectionKeyDown}
-      className="flex w-full flex-col gap-4"
+      className="flex w-full justify-center"
     >
+      <Card className="flex w-full max-w-2xl flex-col gap-4">
       {current ? (
         <ItemCard
           name={current.name}
@@ -241,7 +244,12 @@ export function ManualCapture({ attemptId, strings }: ManualCaptureProps) {
           manualSubmitLabel={strings.manualSubmitLabel}
           onManualSubmit={onManualSubmit}
         />
-        <Button onClick={() => setPendingOpen(true)}>{strings.pendingLookupLabel}</Button>
+        <Button
+          icon={<FileSearchOutlined aria-hidden />}
+          onClick={() => setPendingOpen(true)}
+        >
+          {strings.pendingLookupLabel}
+        </Button>
       </div>
       <Modal
         open={pendingOpen}
@@ -266,7 +274,7 @@ export function ManualCapture({ attemptId, strings }: ManualCaptureProps) {
           role="alertdialog"
           aria-label={strings.confirmTitle}
           aria-describedby={confirmBodyId}
-          className="flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
+          className="border-warning bg-layout flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
         >
           <p id={confirmBodyId} className="m-0">
             {strings.confirmBody(guided.pendingConfirm.quantity)}
@@ -283,6 +291,7 @@ export function ManualCapture({ attemptId, strings }: ManualCaptureProps) {
         message={announcement}
         assertive={guided.notice === 'save-error' || guided.notice === 'confirm-required'}
       />
+      </Card>
     </section>
   )
 }

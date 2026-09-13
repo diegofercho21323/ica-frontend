@@ -33,7 +33,7 @@ export function ItemCard({
   actionDisabled = false,
 }: ItemCardProps) {
   return (
-    <article className="flex w-full flex-col gap-2 rounded-lg border border-solid p-4 sm:flex-row sm:items-center sm:justify-between">
+    <article className="border-outline flex w-full flex-col gap-2 rounded-lg border border-solid p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1">
         <h3 className="m-0 text-base font-semibold">{name}</h3>
         <p className="m-0 text-sm">

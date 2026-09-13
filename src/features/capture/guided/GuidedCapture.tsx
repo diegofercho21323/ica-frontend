@@ -1,8 +1,15 @@
+import {
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  SearchOutlined,
+} from '@ant-design/icons'
+import { Card } from 'antd'
 import { useEffect, useId, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Button } from '../../../shared/ui/primitives/Button'
 import { ItemCard } from '../../../shared/ui/primitives/ItemCard'
 import { LiveRegion } from '../../../shared/ui/primitives/LiveRegion'
 import { NumericInput } from '../../../shared/ui/primitives/NumericInput'
+import { Progress } from '../../../shared/ui/primitives/Progress'
 import { SearchInput } from '../../../shared/ui/primitives/SearchInput'
 import type { RowState } from '../validation'
 import {
@@ -144,13 +151,21 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
           ? strings.saveErrorLabel
           : ''
 
+  const progressLabel = strings.progressLabel(progress.counted, progress.total)
+
   return (
     <section
       aria-busy={guided.isSaving}
       onKeyDown={onSectionKeyDown}
-      className="flex w-full flex-col gap-4"
+      className="flex w-full justify-center"
     >
-      <p className="m-0 text-sm">{strings.progressLabel(progress.counted, progress.total)}</p>
+      <Card className="flex w-full max-w-2xl flex-col gap-4">
+      <Progress
+        value={progress.counted}
+        max={Math.max(progress.total, 1)}
+        label={progressLabel}
+        valueText={progressLabel}
+      />
       {current ? (
         <ItemCard
           name={current.name}
@@ -179,7 +194,11 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
         disabled={guided.isSaving || current === null}
       />
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button onClick={() => guided.prev()} disabled={guided.lines.length === 0}>
+        <Button
+          icon={<ArrowLeftOutlined aria-hidden />}
+          onClick={() => guided.prev()}
+          disabled={guided.lines.length === 0}
+        >
           {strings.prevLabel}
         </Button>
         <Button
@@ -191,10 +210,16 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
         >
           {guided.isSaving ? strings.savingLabel : strings.saveLabel}
         </Button>
-        <Button onClick={() => guided.next()} disabled={guided.lines.length === 0}>
+        <Button
+          icon={<ArrowRightOutlined aria-hidden />}
+          iconPosition="end"
+          onClick={() => guided.next()}
+          disabled={guided.lines.length === 0}
+        >
           {strings.nextLabel}
         </Button>
         <Button
+          icon={<SearchOutlined aria-hidden />}
           onClick={() => {
             setScope('pending')
             guided.setSearchOpen(true)
@@ -227,7 +252,7 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
           role="alertdialog"
           aria-label={strings.confirmTitle}
           aria-describedby={confirmBodyId}
-          className="flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
+          className="border-warning bg-layout flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
         >
           <p id={confirmBodyId} className="m-0">
             {strings.confirmBody(guided.pendingConfirm.quantity)}
@@ -244,6 +269,7 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
         message={announcement}
         assertive={guided.notice === 'save-error' || guided.notice === 'confirm-required'}
       />
+      </Card>
     </section>
   )
 }

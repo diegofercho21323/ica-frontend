@@ -106,7 +106,9 @@ describe('AttemptCapturePage routing by attempt mode (F3-PR5)', () => {
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
     renderAt(`/capture/${attempt.id}?mode=guided`)
 
-    expect(await screen.findByText(/^Avance \d+ de \d+$/)).toBeInTheDocument()
+    // The label renders both as a visible caption and (identically) inside
+    // the sr-only live-region announcer, so two matches is expected here.
+    expect((await screen.findAllByText(/^Avance \d+ de \d+$/)).length).toBeGreaterThan(0)
     expect(
       screen.queryByRole('button', { name: 'Escanear o buscar' }),
     ).not.toBeInTheDocument()
@@ -128,7 +130,7 @@ describe('AttemptCapturePage routing by attempt mode (F3-PR5)', () => {
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
     renderAt(`/capture/${attempt.id}`)
 
-    expect(await screen.findByText(/^Avance \d+ de \d+$/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/^Avance \d+ de \d+$/)).length).toBeGreaterThan(0)
   })
 
   it('falls back to guided capture without crashing when the mode param is invalid', async () => {
@@ -136,6 +138,6 @@ describe('AttemptCapturePage routing by attempt mode (F3-PR5)', () => {
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
     renderAt(`/capture/${attempt.id}?mode=bogus`)
 
-    expect(await screen.findByText(/^Avance \d+ de \d+$/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/^Avance \d+ de \d+$/)).length).toBeGreaterThan(0)
   })
 })
