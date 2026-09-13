@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   QUEUE_STATUS_META,
+  authorizeReplacementKey,
   canMutateAttempt,
   isAutoRetryBlocked,
   orderPendingForReplay,
@@ -85,5 +86,27 @@ describe('submission queue linkage (synced/pending/conflict, no auto-resolve)', 
   it('forbids edits and offline mutations on locked attempts', () => {
     expect(canMutateAttempt(true)).toBe(false)
     expect(canMutateAttempt(false)).toBe(true)
+  })
+
+  it('authorizes a conflict recovery only with a genuinely new replacement key', () => {
+    const conflicted = entry({ state: 'conflict', idempotencyKey: 'clash-key' })
+    expect(authorizeReplacementKey(conflicted, 'fresh-key')).toEqual({
+      attemptId: 'att-1',
+      idempotencyKey: 'fresh-key',
+    })
+  })
+
+  it('refuses conflict recovery when the replacement key matches the stale one', () => {
+    const conflicted = entry({ state: 'conflict', idempotencyKey: 'clash-key' })
+    expect(authorizeReplacementKey(conflicted, 'clash-key')).toBeNull()
+  })
+
+  it('refuses conflict recovery for pending or synced entries (nothing to resolve)', () => {
+    expect(
+      authorizeReplacementKey(entry({ state: 'pending' }), 'fresh-key'),
+    ).toBeNull()
+    expect(
+      authorizeReplacementKey(entry({ state: 'synced' }), 'fresh-key'),
+    ).toBeNull()
   })
 })

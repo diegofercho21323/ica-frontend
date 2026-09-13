@@ -29,6 +29,9 @@ const STRINGS: SubmissionQueueStrings = {
   keyLabel: (key) => `Key ${key}`,
   retryLabel: 'Retry submit',
   retryingLabel: 'Retrying…',
+  resolveLabel: 'Resolve conflict — start new attempt',
+  resolvingLabel: 'Resolving…',
+  resolvedLabel: 'Conflict resolved — submission synced.',
   lockedLabel: 'Attempt locked — no edits allowed.',
   submittedLabel: 'Submission synced.',
   submitFailedLabel: 'Submit failed.',
@@ -200,6 +203,67 @@ describe('SubmissionQueue UI (F4-PR1)', () => {
     expect(
       screen.getAllByRole('button', { name: 'Retry submit' }),
     ).toHaveLength(1)
+  })
+
+  it('offers a deliberate resolve action for conflicts, submitting under a brand-new key', async () => {
+    const receipt: Receipt = {
+      key: 'brand-new-key',
+      status: 'SUCCEEDED',
+      payload_hash: 'resolved-hash',
+      erp_reference: 'erp-att-1-v3',
+    }
+    const { api, calls } = stubApi(async (_attemptId, key) => ({
+      ...receipt,
+      key,
+    }))
+    const user = userEvent.setup()
+    renderQueue(api, [conflicted])
+    expect(
+      screen.queryByRole('button', { name: 'Retry submit' }),
+    ).not.toBeInTheDocument()
+    const resolveButton = screen.getByRole('button', {
+      name: 'Resolve conflict — start new attempt',
+    })
+    await user.click(resolveButton)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].attemptId).toBe('att-1')
+    expect(calls[0].key).not.toBe('clash-key')
+    expect(
+      await screen.findByText('Conflict resolved — submission synced.'),
+    ).toBeInTheDocument()
+    expect(await screen.findByText('Synced')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: 'Resolve conflict — start new attempt',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('never resolves a conflict automatically — a second 409 stays a conflict, no silent retry loop', async () => {
+    const { api, calls } = stubApi(async () => {
+      throw new HttpError(409, 'IDEMPOTENCY_CONFLICT', 'still clashing')
+    })
+    const user = userEvent.setup()
+    renderQueue(api, [conflicted])
+    await user.click(
+      screen.getByRole('button', { name: 'Resolve conflict — start new attempt' }),
+    )
+    expect(calls).toHaveLength(1)
+    expect(await screen.findByText('Conflict — action needed')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('alert'),
+    ).toHaveTextContent('Conflict — deliberate recovery required.')
+  })
+
+  it('disables the resolve action on locked attempts and names the lock', () => {
+    const { api } = stubApi(async () => syncedDone.receipt as Receipt)
+    renderQueue(api, [conflicted], true)
+    expect(
+      screen.getByRole('button', { name: 'Resolve conflict — start new attempt' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByText('Attempt locked — no edits allowed.'),
+    ).toBeInTheDocument()
   })
 
   it('disables retry on locked attempts and names the lock', () => {

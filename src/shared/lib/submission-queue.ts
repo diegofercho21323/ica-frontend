@@ -57,3 +57,14 @@ export const isAutoRetryBlocked = (entry: SubmissionQueueEntry): boolean =>
 // The server reports a locked attempt as immutable: neither the queue nor the
 // operator may edit it or queue offline mutations against it.
 export const canMutateAttempt = (locked: boolean): boolean => !locked
+
+// A 409 conflict never auto-resolves: recovery requires a DELIBERATE user
+// action that submits under a brand-new key, never the stale one that
+// clashed. Non-conflict entries have nothing to resolve.
+export const authorizeReplacementKey = (
+  entry: SubmissionQueueEntry,
+  nextKey: string,
+): RetryRequest | null =>
+  entry.state === 'conflict' && nextKey !== entry.idempotencyKey
+    ? { attemptId: entry.attemptId, idempotencyKey: nextKey }
+    : null

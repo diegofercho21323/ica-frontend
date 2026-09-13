@@ -3,7 +3,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useInventoryApi } from '../../shared/api/inventory/api-context'
 import { HttpError } from '../../shared/api/inventory/errors'
 import type { Receipt } from '../../shared/api/inventory/models'
+import { mintKey } from '../../shared/lib/idempotency'
 import {
+  authorizeReplacementKey,
   canMutateAttempt,
   isAutoRetryBlocked,
   orderPendingForReplay,
@@ -38,6 +40,9 @@ export type SubmissionQueueStrings = {
   keyLabel: (key: string) => string
   retryLabel: string
   retryingLabel: string
+  resolveLabel: string
+  resolvingLabel: string
+  resolvedLabel: string
   lockedLabel: string
   submittedLabel: string
   submitFailedLabel: string
@@ -97,6 +102,39 @@ export function RetryButton({
       onClick={() => onRetry({ attemptId, idempotencyKey })}
     >
       {busy ? retryingLabel : retryLabel}
+    </Button>
+  )
+}
+
+/**
+ * Deliberate conflict-recovery affordance. Separate from `RetryButton` on
+ * purpose: a conflict never offers a plain "retry with the same key" path,
+ * only this explicit "start a new attempt" action.
+ */
+export function ResolveButton({
+  attemptId,
+  disabled = false,
+  busy = false,
+  resolveLabel,
+  resolvingLabel,
+  onResolve,
+}: {
+  attemptId: string
+  disabled?: boolean
+  busy?: boolean
+  resolveLabel: string
+  resolvingLabel: string
+  onResolve: (attemptId: string) => void
+}) {
+  return (
+    <Button
+      type="primary"
+      disabled={disabled || busy}
+      loading={busy}
+      loadingLabel={resolvingLabel}
+      onClick={() => onResolve(attemptId)}
+    >
+      {busy ? resolvingLabel : resolveLabel}
     </Button>
   )
 }
@@ -177,6 +215,56 @@ export function SubmissionQueue({
     }
   }
 
+  /**
+   * Deliberate conflict recovery: mints a brand-new `Idempotency-Key` and
+   * submits under it. Never reuses the stale key that clashed — that is
+   * exactly the silent-retry behavior a 409 must never trigger.
+   */
+  const handleResolveConflict = async (entry: SubmissionQueueEntry) => {
+    if (!canMutateAttempt(locked)) return
+    const nextKey = mintKey()
+    const request = authorizeReplacementKey(entry, nextKey)
+    if (!request) return
+    setBusyKey(entry.idempotencyKey)
+    try {
+      const receipt = await api.submit(request.attemptId, request.idempotencyKey)
+      setEntries((prev) =>
+        prev.map((item) =>
+          sameEntry(entry)(item)
+            ? { ...item, idempotencyKey: nextKey, state: 'synced', receipt }
+            : item,
+        ),
+      )
+      setAnnouncement(strings.resolvedLabel)
+      setAssertive(false)
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 409) {
+        setEntries((prev) =>
+          prev.map((item) =>
+            sameEntry(entry)(item)
+              ? {
+                  ...item,
+                  idempotencyKey: nextKey,
+                  state: 'conflict',
+                  detail: 'IDEMPOTENCY_CONFLICT',
+                }
+              : item,
+          ),
+        )
+        setAnnouncement(strings.conflictAnnounceLabel)
+        setAssertive(true)
+      } else {
+        setAnnouncement(strings.submitFailedLabel)
+        setAssertive(true)
+      }
+    } finally {
+      setBusyKey(null)
+      await queryClient.invalidateQueries({
+        queryKey: [...submissionHistoryKey(sessionId)],
+      })
+    }
+  }
+
   return (
     <section aria-busy={busyKey !== null} className="flex w-full flex-col gap-4">
       <h2 className="m-0 text-base font-semibold">{strings.titleLabel}</h2>
@@ -220,6 +308,16 @@ export function SubmissionQueue({
                     retryLabel={strings.retryLabel}
                     retryingLabel={strings.retryingLabel}
                     onRetry={() => void handleRetry(entry)}
+                  />
+                ) : null}
+                {entry.state === 'conflict' ? (
+                  <ResolveButton
+                    attemptId={entry.attemptId}
+                    disabled={!mutable}
+                    busy={busyKey === entry.idempotencyKey}
+                    resolveLabel={strings.resolveLabel}
+                    resolvingLabel={strings.resolvingLabel}
+                    onResolve={() => void handleResolveConflict(entry)}
                   />
                 ) : null}
               </li>

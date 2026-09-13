@@ -10,8 +10,10 @@ const fingerprintFor = (operation: string, payload: string) => {
 
 // `crypto.randomUUID` is absent in some runtimes (notably jsdom), so mint
 // with a fallback. Uniqueness per process is enough here because the
-// registry already dedupes by operation fingerprint.
-const mintKey = (): string => {
+// registry already dedupes by operation fingerprint. Exported so deliberate
+// recovery flows (e.g. submission-queue conflict resolution) can mint a
+// genuinely new key without duplicating this fallback.
+export const mintKey = (): string => {
   const candidate = (globalThis as { crypto?: { randomUUID?: () => string } })
     .crypto
   if (candidate && typeof candidate.randomUUID === 'function') {
