@@ -34,10 +34,15 @@ export default {
       // operator-facing cannot compile against a reconciled quantity. This rule
       // is only enforceable because the type sits in its own module, and only
       // catches `import type` edges because `tsPreCompilationDeps` is on.
+      //
+      // Bugfix: this previously excluded `src/features/recount-authoring/`,
+      // a folder that never existed (the real feature is `src/features/recount/`)
+      // — the rule enforced nothing for the one path it was meant to allow.
+      // Caught during admin-console exploration/proposal; fixed opportunistically.
       name: 'leader-view-is-recount-authoring-only',
       severity: 'error',
       from: {
-        pathNot: '^(src/features/recount-authoring/|src/shared/api/inventory/)',
+        pathNot: '^(src/features/recount/|src/shared/api/inventory/)',
       },
       to: { path: '^src/shared/api/inventory/leader-models\\.ts$' },
     },
