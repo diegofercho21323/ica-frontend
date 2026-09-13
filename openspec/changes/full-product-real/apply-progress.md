@@ -1042,18 +1042,42 @@ already is the tested UX-mirror gate a future call site will feed from
   failures (`attemptId: undefined`, `isSuccess` staying `false`,
   `parent.sessionId` `undefined`) were confirmed before any production edit.
 
-### Native attempt ledger
+### Native attempt ledger — settle blocked on maintainer reset (not a code failure)
 
 `gentle-ai sdd-attempt acquire --work-unit "F4-PR2 session-scoped recount +
 history" --max-attempts 3 --max-changed-lines 450` → `state: proceed`, token
 `sha256:487629010b197b6955a4e101df5a45e838dcb85bb61d489f7fec28a694dd5ae7`.
-Settle to be run after this commit lands; per the prior five work units'
-documented pattern (F1-PR3, F3-PR1, F3-PR3, F3-PR5, F4-PR1), this ledger has
-consistently returned `blocked/maintainer_decision` on base-tree/objective
-drift unrelated to code correctness — if that recurs here, it is recorded as
-a risk below and the real, green verification evidence above (315/315,
-typecheck/lint/fsd clean, 187-line diff well under the 450-line cap) remains
-the source of truth for this work unit's completion.
+
+`gentle-ai sdd-attempt settle --outcome passed --evidence-revision
+sha256:95b24767fcc39c0b33fd7a0a6c4f2c35c94606cfc5403af1ec2ded56d4484c9a` →
+**recorded** attempt ordinal 17 as `outcome: passed`, then returned `state:
+blocked / maintainer_decision`.
+
+Cause: same category as F1-PR3/F3-PR1/F3-PR3 above — `status` reports
+`cumulative_changed_lines: 517` (the full `begin_candidate_tree` →
+`finish_candidate_tree` branch diff, i.e. base drift since this objective's
+`initial_candidate_tree` was opened, charged to the attempt) vs
+`max_changed_lines: 450`, so `changed_line_budget_exceeded: true` /
+`decision_required: true` / `next_action: reset`. The actual reviewable
+diff for this work unit's own commit is **289 changed lines** (240
+insertions + 47 deletions across 10 files, per `git show --stat HEAD`),
+well under the 450-line cap set for this attempt.
+
+```
+gentle-ai sdd-attempt reset --cwd /mnt/developments/ica-frontend --change full-product-real \
+  --expected-revision sha256:efe45aad915059d167754e413407c71ff5abfee2488fabc469e76be1eee70214 \
+  --request-id "<unique>" --reason "F4-PR2 landed green (315/315, typecheck/lint/fsd clean); 289 reviewable lines under budget, overflow is base-drift/SDD bookkeeping" --actor "<actor>"
+```
+
+Retained attempt token:
+`sha256:487629010b197b6955a4e101df5a45e838dcb85bb61d489f7fec28a694dd5ae7`
+Evidence revision passed to settle:
+`sha256:95b24767fcc39c0b33fd7a0a6c4f2c35c94606cfc5403af1ec2ded56d4484c9a`
+(status top-level `revision` for the reset:
+`sha256:efe45aad915059d167754e413407c71ff5abfee2488fabc469e76be1eee70214`)
+
+The code work for tasks 5.3 + 5.4 is complete and fully verified; the ledger
+block does not change that.
 
 ### Remaining tasks (out of scope for this work unit)
 
