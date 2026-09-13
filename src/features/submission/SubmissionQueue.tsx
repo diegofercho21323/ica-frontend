@@ -1,3 +1,5 @@
+import { InboxOutlined, SyncOutlined } from '@ant-design/icons'
+import { Card, Divider, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useInventoryApi } from '../../shared/api/inventory/api-context'
@@ -65,13 +67,13 @@ export function ReceiptView({
   referenceText: string
 }) {
   return (
-    <div>
+    <div className="bg-layout flex flex-col gap-1 rounded-md p-3">
       <Status
         tone={receipt.status === 'SUCCEEDED' ? 'success' : 'error'}
         label={statusLabel}
       />
-      <p className="m-0 text-sm">{hashText}</p>
-      <p className="m-0 text-sm">{referenceText}</p>
+      <p className="text-on-surface-secondary m-0 text-sm">{hashText}</p>
+      <p className="text-on-surface-secondary m-0 text-sm">{referenceText}</p>
     </div>
   )
 }
@@ -266,66 +268,78 @@ export function SubmissionQueue({
   }
 
   return (
-    <section aria-busy={busyKey !== null} className="flex w-full flex-col gap-4">
-      <h2 className="m-0 text-base font-semibold">{strings.titleLabel}</h2>
-      {locked ? <p className="m-0 text-sm">{strings.lockedLabel}</p> : null}
-      {visible.length === 0 ? (
-        <p className="m-0 text-sm">{strings.emptyLabel}</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-3 p-0">
-          {visible.map((entry) => {
-            const retryable =
-              retryRequestFor(entry) !== null && !isAutoRetryBlocked(entry)
-            return (
-              <li
-                key={`${sessionId}:${entry.attemptId}:${entry.idempotencyKey}`}
-                className="flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
-              >
-                <Status
-                  tone={TONE_FOR_STATE[entry.state]}
-                  label={strings.stateLabels[entry.state]}
-                />
-                <p className="m-0 text-sm">{strings.attemptLabel(entry.attemptId)}</p>
-                <p className="m-0 text-sm">{strings.keyLabel(entry.idempotencyKey)}</p>
-                {entry.receipt ? (
-                  <ReceiptView
-                    receipt={entry.receipt}
-                    statusLabel={strings.receiptStatusLabels[entry.receipt.status]}
-                    hashText={strings.payloadHashLabel(entry.receipt.payload_hash)}
-                    referenceText={
-                      entry.receipt.erp_reference
-                        ? strings.erpReferenceLabel(entry.receipt.erp_reference)
-                        : strings.noReferenceLabel
-                    }
-                  />
-                ) : null}
-                {retryable ? (
-                  <RetryButton
-                    attemptId={entry.attemptId}
-                    idempotencyKey={entry.idempotencyKey}
-                    disabled={!mutable}
-                    busy={busyKey === entry.idempotencyKey}
-                    retryLabel={strings.retryLabel}
-                    retryingLabel={strings.retryingLabel}
-                    onRetry={() => void handleRetry(entry)}
-                  />
-                ) : null}
-                {entry.state === 'conflict' ? (
-                  <ResolveButton
-                    attemptId={entry.attemptId}
-                    disabled={!mutable}
-                    busy={busyKey === entry.idempotencyKey}
-                    resolveLabel={strings.resolveLabel}
-                    resolvingLabel={strings.resolvingLabel}
-                    onResolve={() => void handleResolveConflict(entry)}
-                  />
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      <LiveRegion message={announcement} assertive={assertive} />
+    <section aria-busy={busyKey !== null} className="flex w-full justify-center">
+      <Card className="flex w-full max-w-2xl flex-col gap-4">
+        <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
+          <SyncOutlined aria-hidden />
+          {strings.titleLabel}
+        </Typography.Title>
+        {locked ? (
+          <p className="text-warning m-0 text-sm">{strings.lockedLabel}</p>
+        ) : null}
+        {visible.length === 0 ? (
+          <div className="text-on-surface-secondary flex flex-col items-center gap-2 py-8 text-center">
+            <InboxOutlined aria-hidden className="text-2xl" />
+            <p className="m-0 text-sm">{strings.emptyLabel}</p>
+          </div>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {visible.map((entry, index) => {
+              const retryable =
+                retryRequestFor(entry) !== null && !isAutoRetryBlocked(entry)
+              return (
+                <li key={`${sessionId}:${entry.attemptId}:${entry.idempotencyKey}`}>
+                  {index > 0 ? <Divider className="!my-0" /> : null}
+                  <div className="border-outline flex w-full flex-col gap-2 rounded-lg border border-solid p-4 shadow-sm">
+                    <Status
+                      tone={TONE_FOR_STATE[entry.state]}
+                      label={strings.stateLabels[entry.state]}
+                    />
+                    <p className="m-0 text-sm">{strings.attemptLabel(entry.attemptId)}</p>
+                    <p className="m-0 text-sm">{strings.keyLabel(entry.idempotencyKey)}</p>
+                    {entry.receipt ? (
+                      <ReceiptView
+                        receipt={entry.receipt}
+                        statusLabel={strings.receiptStatusLabels[entry.receipt.status]}
+                        hashText={strings.payloadHashLabel(entry.receipt.payload_hash)}
+                        referenceText={
+                          entry.receipt.erp_reference
+                            ? strings.erpReferenceLabel(entry.receipt.erp_reference)
+                            : strings.noReferenceLabel
+                        }
+                      />
+                    ) : null}
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      {retryable ? (
+                        <RetryButton
+                          attemptId={entry.attemptId}
+                          idempotencyKey={entry.idempotencyKey}
+                          disabled={!mutable}
+                          busy={busyKey === entry.idempotencyKey}
+                          retryLabel={strings.retryLabel}
+                          retryingLabel={strings.retryingLabel}
+                          onRetry={() => void handleRetry(entry)}
+                        />
+                      ) : null}
+                      {entry.state === 'conflict' ? (
+                        <ResolveButton
+                          attemptId={entry.attemptId}
+                          disabled={!mutable}
+                          busy={busyKey === entry.idempotencyKey}
+                          resolveLabel={strings.resolveLabel}
+                          resolvingLabel={strings.resolvingLabel}
+                          onResolve={() => void handleResolveConflict(entry)}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        <LiveRegion message={announcement} assertive={assertive} />
+      </Card>
     </section>
   )
 }

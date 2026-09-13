@@ -1,3 +1,5 @@
+import { TeamOutlined } from '@ant-design/icons'
+import { Alert, Card, Checkbox, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { Button } from '../../shared/ui/primitives/Button'
 import { LiveRegion } from '../../shared/ui/primitives/LiveRegion'
@@ -53,9 +55,14 @@ export function RecountScreen({
 
   if (!canRecount) {
     return (
-      <section className="flex w-full flex-col gap-4">
-        <h2 className="m-0 text-base font-semibold">{strings.titleLabel}</h2>
-        <p className="m-0 text-sm">{strings.forbiddenLabel}</p>
+      <section className="flex w-full justify-center">
+        <Card className="flex w-full max-w-2xl flex-col gap-4">
+          <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
+            <TeamOutlined aria-hidden />
+            {strings.titleLabel}
+          </Typography.Title>
+          <Alert type="warning" showIcon message={strings.forbiddenLabel} />
+        </Card>
       </section>
     )
   }
@@ -82,48 +89,51 @@ export function RecountScreen({
   }
 
   return (
-    <section aria-busy={isRecounting} className="flex w-full flex-col gap-4">
-      <h2 className="m-0 text-base font-semibold">{strings.titleLabel}</h2>
-      <p className="m-0 text-sm">{strings.selectHintLabel}</p>
-      <ul className="m-0 flex list-none flex-col gap-2 p-0">
-        {lines.map((line) => (
-          <li key={line.code} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`recount-line-${line.code}`}
-              checked={selected.includes(line.code)}
-              onChange={() => toggle(line.code)}
-            />
-            <label htmlFor={`recount-line-${line.code}`} className="text-sm">
-              {strings.lineLabel(line)}
-            </label>
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="recount-assignee" className="text-sm">
-          {strings.assigneeLabel}
-        </label>
-        <input
-          type="text"
-          id="recount-assignee"
-          value={assignee}
-          onChange={(event) => setAssignee(event.target.value)}
-        />
-      </div>
-      {selected.length === 0 ? (
-        <p className="m-0 text-sm">{strings.emptySelectionLabel}</p>
-      ) : null}
-      <Button
-        type="primary"
-        disabled={selected.length === 0 || isRecounting}
-        loading={isRecounting}
-        loadingLabel={strings.creatingLabel}
-        onClick={() => void handleCreate()}
-      >
-        {isRecounting ? strings.creatingLabel : strings.createLabel}
-      </Button>
-      <LiveRegion message={announcement} assertive={assertive} />
+    <section aria-busy={isRecounting} className="flex w-full justify-center">
+      <Card className="flex w-full max-w-2xl flex-col gap-4">
+        <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
+          <TeamOutlined aria-hidden />
+          {strings.titleLabel}
+        </Typography.Title>
+        <p className="text-on-surface-secondary m-0 text-sm">{strings.selectHintLabel}</p>
+        <ul className="border-outline bg-layout m-0 flex list-none flex-col gap-1 rounded-lg border border-solid p-2">
+          {lines.map((line) => (
+            <li key={line.code} className="flex items-center gap-2 rounded-md px-2 py-1.5">
+              <Checkbox
+                id={`recount-line-${line.code}`}
+                checked={selected.includes(line.code)}
+                onChange={() => toggle(line.code)}
+              >
+                {strings.lineLabel(line)}
+              </Checkbox>
+            </li>
+          ))}
+        </ul>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="recount-assignee" className="text-sm">
+            {strings.assigneeLabel}
+          </label>
+          <Input
+            id="recount-assignee"
+            value={assignee}
+            onChange={(event) => setAssignee(event.target.value)}
+          />
+        </div>
+        {selected.length === 0 ? (
+          <p className="text-on-surface-secondary m-0 text-sm">{strings.emptySelectionLabel}</p>
+        ) : null}
+        <Button
+          type="primary"
+          icon={<TeamOutlined aria-hidden />}
+          disabled={selected.length === 0 || isRecounting}
+          loading={isRecounting}
+          loadingLabel={strings.creatingLabel}
+          onClick={() => void handleCreate()}
+        >
+          {isRecounting ? strings.creatingLabel : strings.createLabel}
+        </Button>
+        <LiveRegion message={announcement} assertive={assertive} />
+      </Card>
     </section>
   )
 }

@@ -1,6 +1,7 @@
-import { Alert, Card, Typography } from 'antd'
+import { FileDoneOutlined } from '@ant-design/icons'
+import { Alert, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useLocation, useParams, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router'
 import { LoginForm } from '../features/access/LoginForm'
 import { useSession } from '../features/access/SessionContext'
 import { ReviewScreen } from '../features/attempts/ReviewScreen'
@@ -67,7 +68,7 @@ export function AttemptCapturePage() {
   const mode = searchParams.get('mode') === 'manual' ? 'manual' : 'guided'
 
   return (
-    <Card>
+    <div className="flex flex-col gap-3">
       {mode === 'manual' ? (
         <ManualCapture attemptId={attemptId} strings={buildManualCaptureStrings(t)} />
       ) : (
@@ -77,7 +78,16 @@ export function AttemptCapturePage() {
           strings={buildGuidedCaptureStrings(t)}
         />
       )}
-    </Card>
+      <div className="flex justify-center">
+        <Link
+          to={`/attempts/${attemptId}/review`}
+          className="text-primary flex items-center gap-1.5 text-sm font-medium"
+        >
+          <FileDoneOutlined aria-hidden />
+          {t('review.title')}
+        </Link>
+      </div>
+    </div>
   )
 }
 

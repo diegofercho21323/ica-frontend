@@ -16,6 +16,9 @@ function pathnameToKey(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'dashboard'
   if (pathname.startsWith('/bodegas')) return 'warehouses'
   if (pathname.startsWith('/capture')) return 'capture'
+  // Review/recount nest under the capture flow but have no nav item of
+  // their own — no menu key means no item gets falsely highlighted.
+  if (pathname.startsWith('/attempts')) return 'review'
   return 'login'
 }
 
