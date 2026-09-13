@@ -1417,3 +1417,151 @@ F3-PR2, F5-PR1), objective was current when this attempt was acquired.
   `handleRetry`/`handleResolveConflict`, and into `useCaptureForm.ts`'s
   `saveBatch` call site, so offline-queued captures actually persist across
   a reload in the live app, not just in this module's own tests.
+
+---
+
+## Work Unit: F5-PR3 (tasks 6.5 + 6.6) — Blind-safe telemetry (LAST F5 slice — F1-F5 now all complete)
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file), per
+explicit orchestrator instruction ("ONE commit for this slice").
+
+### Approach
+
+- **`src/shared/lib/telemetry/telemetry.ts`** (new): non-blocking, synchronous,
+  `void`-returning aggregate collector over an in-memory
+  `Map<attemptId, state>` (ring-buffered to 200 focus-to-save samples per
+  attempt — never unbounded). Every `record*` function is wrapped in a
+  `safely()` swallow-wrapper so a telemetry call can never throw into its
+  caller's save/retry path, matching the assigned "never able to fail a
+  save/retry" hard requirement literally, not just by convention.
+  `getAttemptTelemetry(attemptId)` is the only read API and returns a closed,
+  explicit shape: `{ attemptId, focusToSave: { sampleCount, medianMs, p90Ms },
+  unitErrorCount, retryCount }` — median/p90 computed on read via linear-
+  interpolation percentile, never a raw array a consumer must reduce.
+- **Blind-safety, hard requirement**: proven two ways in
+  `telemetry.test.ts`, not just "we didn't populate it this time":
+  1. A comment-stripped static source-scan of `telemetry.ts` asserting zero
+     occurrence of `quantity`/`qty`/`stock`/`priorCount`/`variance`/
+     `theoreticalStock`/`price` anywhere in the production code (comments are
+     stripped first specifically so this file's own doc comments can discuss
+     the invariant in prose without self-tripping the guard that enforces
+     it).
+  2. A runtime structural scan: after recording every kind of event,
+     recursively collects every own key name of the actual returned
+     `AttemptTelemetrySnapshot` object and asserts none contains any banned
+     substring, plus an exact `Object.keys` equality against the closed
+     field list — proving the *shape* is safe, not merely today's contents.
+- **Wiring — `useGuidedCapture.ts`** (additive only, no existing tested
+  behavior changed): a new `focusStartRef` timer starts whenever a line
+  becomes the active one (`selectLine`, the initial guided auto-select
+  effect, and `advanceAfterSave`'s auto-advance) and is read + cleared in the
+  save mutation's `onSuccess` via `recordFocusToSaveDuration(attemptId,
+  Date.now() - focusStartRef.current)`. `recordUnitError(attemptId)` is
+  called on the pre-existing `unit-mismatch` field-error branch in
+  `saveCurrent` — reusing that exact taxonomy per the assigned instruction,
+  no new error category invented.
+- **Wiring — `SubmissionQueue.tsx`**: `recordRetry(request.attemptId)` added
+  to `handleRetry`, called once the retry is authorized (after the
+  `retryRequestFor`/`isAutoRetryBlocked`/`canMutateAttempt` guards, before the
+  `api.submit` call) — counts every real retry attempt regardless of whether
+  it succeeds or lands on a fresh 409, per the assigned "retry/replay counts
+  from the submission queue... retry paths" scope. `handleResolveConflict`
+  (the deliberate conflict-recovery action) was deliberately **not** wired —
+  the assigned instruction named only "queue retry (`SubmissionQueue`'s
+  retry handler, for retry counts)", not the resolve action, and
+  `outboxStore`/`replayOutbox` (F5-PR2) stay unwired into any live path per
+  that slice's own documented scope decision, so there is no outbox retry
+  call site to hook here either.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 6.5/6.6 `telemetry` module | `src/shared/lib/telemetry/telemetry.test.ts` | Unit | N/A (new) | ✅ `Failed to resolve import "./telemetry"` — 0 tests ran | ✅ 8/8 pass | ✅ static source-scan + runtime-shape scan + median/p90/5-sample case + zero-sample-null case + per-attempt isolation + repeated-count case + non-finite/negative-rejected case + void-return case | ➖ minimal, no extraction needed |
+| 6.5/6.6 guided-save wiring | `src/features/capture/guided/useGuidedCapture.test.tsx` | Integration (RTL hook) | ✅ baseline 10/10 pass (pre-edit) | ✅ 2/2 fail (`sampleCount` 0, `unitErrorCount` 0 against real production code) | ✅ 10/10 pass | ✅ reused the file's own existing guided-auto-advance case (timing) + unit-mismatch case (error count) — no new test files needed since the wiring is additive to already-triangulated behavior | ➖ none needed |
+| 6.5/6.6 queue-retry wiring | `src/features/submission/SubmissionQueue.test.tsx` | Integration (RTL) | ✅ baseline 14/14 pass (pre-edit) | ✅ 2/2 fail (`retryCount` 0 against real production code) | ✅ 16/16 pass | ✅ success-then-synced case + retry-into-a-fresh-409 case (proves the count survives failure, not just the happy path) | ➖ none needed |
+
+- **Approval tests**: none — `telemetry.ts` is entirely new; the two wiring
+  files' pre-existing tests act as the safety net proving no regression.
+- **Pure functions created**: 1 (`percentile`, linear-interpolation
+  median/p90); `safely`/`stateFor` are private helpers, not exported.
+- Triangulation: 8 distinct cases in the module's own suite (see table) plus
+  3 real end-to-end wiring assertions (timing + unit-error + retry, each
+  proven against actual production code execution, not a mock of the
+  telemetry module itself).
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/shared/lib/telemetry/telemetry.test.ts src/features/capture/guided/useGuidedCapture.test.tsx src/features/submission/SubmissionQueue.test.tsx --no-file-parallelism` → **34/34 pass, 3 files** (was: telemetry module unresolved + 2 known-failing wiring assertions at RED) |
+| Full suite | `npm run test:run` hit the same known flaky 5s timeout in `tests/app.smoke.test.tsx`'s keyboard-login test under parallel load documented since F3-PR3 (337/338, unrelated file untouched by this slice); `npm run test:run -- --no-file-parallelism` → **338/338 pass, 55 files** clean (baseline 329/329, 54 files; +9 new tests, +1 new file) |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (139 modules, 580 deps) |
+| Runtime harness | RTL `renderHook`/`render` through the real `useGuidedCapture`/`SubmissionQueue` production code (not a telemetry mock) is the runtime boundary for both wiring proofs — the save mutation and the retry click genuinely execute the `record*` calls. No network path (mock port); telemetry itself has no network path by design (in-memory only, no backend endpoint exists yet). |
+| Rollback boundary | Delete `src/shared/lib/telemetry/`; revert the added `focusStartRef`/`recordFocusToSaveDuration`/`recordUnitError` lines in `useGuidedCapture.ts` and the `recordRetry` line in `SubmissionQueue.tsx`; revert the added assertions/imports in `useGuidedCapture.test.tsx` and `SubmissionQueue.test.tsx`; revert `tasks.md`/`apply-progress.md` edits in this commit. No other feature, primitive, or routing file touched. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/shared/lib/telemetry/telemetry.ts` | Created | `recordFocusToSaveDuration`/`recordUnitError`/`recordRetry`/`getAttemptTelemetry`/`__resetTelemetryForTests`; non-blocking, blind-safe, closed-shape aggregate collector |
+| `src/shared/lib/telemetry/telemetry.test.ts` | Created | 8 tests: source-scan + runtime-shape blind-safety, median/p90 aggregate, null-when-empty, per-attempt isolation, repeated counts, non-finite/negative rejection, void-return fire-and-forget proof |
+| `src/features/capture/guided/useGuidedCapture.ts` | Modified | `focusStartRef` timer (`selectLine`/initial auto-select/`advanceAfterSave`) + `recordFocusToSaveDuration` in the save mutation's `onSuccess`; `recordUnitError` on the existing `unit-mismatch` branch |
+| `src/features/capture/guided/useGuidedCapture.test.tsx` | Modified | +imports, +2 assertions on existing tests (focus-to-save sample recorded, unit-error counted) — no new test blocks, reused existing triangulated scenarios |
+| `src/features/submission/SubmissionQueue.tsx` | Modified | `recordRetry(request.attemptId)` added to `handleRetry`, after the retry-authorization guards |
+| `src/features/submission/SubmissionQueue.test.tsx` | Modified | +imports, +1 assertion on the existing success-retry test, +1 new test (retry count survives a fresh 409) |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 6.5 + 6.6 `[x]` with evidence; F5-PR3 section header marked COMPLETE; F1–F5 all-done note added |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design / tasks.md
+
+- None. `design.md`'s F2–F5 target note names `product-telemetry` only at the
+  spec level (no `File Changes` row exists for it — that table is scoped to
+  F1); the spec's own two scenarios ("Timing recorded per save", "Telemetry
+  stays blind-safe") are both fully implemented and structurally proven.
+- `handleResolveConflict` was deliberately left un-wired to `recordRetry` —
+  see "Wiring — `SubmissionQueue.tsx`" above. This narrows the informal
+  "retry/replay counts... from the submission queue" phrasing to exactly the
+  named integration point ("queue retry... retry handler") from the
+  assigning instruction; not a silent gap, since the outbox module (the
+  other named source, "outbox retry paths") has no live call site to hook
+  either, per F5-PR2's own documented standalone-module scope decision.
+
+### Issues found
+
+- None. Both wiring RED failures (`sampleCount`/`unitErrorCount` at `0`,
+  `retryCount` at `0`) were confirmed against real, unmodified production
+  code before any production edit (Strict TDD Law 1).
+
+### F1–F5 status note
+
+This is the last task in the F5 phase and the last task in `tasks.md`
+overall. All of F1 (Reconcile), F2 (Contract skeleton, gated), F3 (Capture),
+F4 (Close-loop), and F5 (Offline) are now `[x]` complete. No further
+`sdd-apply` work remains against this change's current task list;
+`sdd-verify` is the next phase.
+
+### Native attempt ledger — settled cleanly
+
+`gentle-ai sdd-attempt acquire --work-unit "F5-PR3 blind-safe telemetry"
+--max-attempts 3 --max-changed-lines 400` initially rejected on undeclared
+untracked files (the two new `src/shared/lib/telemetry/` files); reissued
+with `--untracked-scope=select --intended-untracked
+src/shared/lib/telemetry/telemetry.ts --intended-untracked
+src/shared/lib/telemetry/telemetry.test.ts` → `state: proceed`, token
+`sha256:0f0f8fcdf4c450b1a232173f998c3589a3ed0fab02b8df1d6fe2f2f639dab677`.
+
+`gentle-ai sdd-attempt settle --outcome passed --evidence-revision
+sha256:197deab428d9cb21a3f377eb16290d1af5b8f47747226fad3ef095d9a08f59a6`
+(sha256 of git HEAD `7b8cd5b172bbe62cb8b428c4d44f10b4e4451421`) →
+**`state: complete`**. No `maintainer_decision` block — this is the fourth
+clean settle in this file (after F3-PR2, F5-PR1, F5-PR2), and the objective
+was current when this attempt was acquired.
+
+Its own `exit` message confirms this change's runtime objective (F5-PR3) is
+now complete, matching the "F1–F5 status note" above: no further
+`sdd-apply` work unit remains against this change's task list.

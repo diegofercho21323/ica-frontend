@@ -10,6 +10,10 @@ import {
   createIdempotencyRegistry,
   type IdempotencyKeyStore,
 } from '../../../shared/lib/idempotency'
+import {
+  recordFocusToSaveDuration,
+  recordUnitError,
+} from '../../../shared/lib/telemetry/telemetry'
 import { buildChangeInput, buildConfirmChange } from '../change-input'
 import { QTY_RE } from '../validation'
 
@@ -124,6 +128,9 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
   const [notice, setNotice] = useState<GuidedNotice>(null)
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null)
   const initialized = useRef(false)
+  // Focus-to-save timing (product-telemetry): started whenever a line
+  // becomes the active one, closed and recorded once its save succeeds.
+  const focusStartRef = useRef<number | null>(null)
 
   const linesQuery = useQuery({
     queryKey: ['capture-lines', attemptId],
@@ -137,6 +144,7 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
     if (mode === 'guided') {
       const next = getNextPendingIndex(linesQuery.data, 0)
       setSelectedCode(next === -1 ? null : linesQuery.data[next].code)
+      if (next !== -1) focusStartRef.current = Date.now()
     }
   }, [linesQuery.data, mode])
 
@@ -148,7 +156,10 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
     )
     const savedIndex = projected.findIndex((line) => line.code === savedCode)
     const nextIndex = getNextPendingIndex(projected, savedIndex + 1)
-    if (nextIndex !== -1) setSelectedCode(projected[nextIndex].code)
+    if (nextIndex !== -1) {
+      setSelectedCode(projected[nextIndex].code)
+      focusStartRef.current = Date.now()
+    }
   }
 
   const mutation = useMutation({
@@ -158,6 +169,10 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
       if (input.confirm) setPendingConfirm(null)
       setFieldError(null)
       setNotice('saved')
+      if (focusStartRef.current !== null) {
+        recordFocusToSaveDuration(attemptId, Date.now() - focusStartRef.current)
+        focusStartRef.current = null
+      }
       if (mode === 'guided' && input.changes.length > 0) {
         advanceAfterSave(input.changes[0].lineCode, linesQuery.data ?? [])
       }
@@ -184,6 +199,7 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
     setSelectedCode(code)
     setFieldError(null)
     setNotice(null)
+    focusStartRef.current = Date.now()
   }
 
   const goTo = (index: number) => {
@@ -200,6 +216,7 @@ export function useGuidedCapture(attemptId: string, mode: GuidedMode) {
     if (input.unit !== current.unit) {
       // Contract-exact unit: blocked inline and excluded from the batch.
       setFieldError('unit-mismatch')
+      recordUnitError(attemptId)
       return
     }
     if (input.quantity === '') {

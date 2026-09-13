@@ -15,6 +15,7 @@ import {
   type QueueSyncState,
   type SubmissionQueueEntry,
 } from '../../shared/lib/submission-queue'
+import { recordRetry } from '../../shared/lib/telemetry/telemetry'
 import { Button } from '../../shared/ui/primitives/Button'
 import { LiveRegion } from '../../shared/ui/primitives/LiveRegion'
 import { Status, type StatusTone } from '../../shared/ui/primitives/Status'
@@ -184,6 +185,7 @@ export function SubmissionQueue({
   const handleRetry = async (entry: SubmissionQueueEntry) => {
     const request = retryRequestFor(entry)
     if (!request || isAutoRetryBlocked(entry) || !canMutateAttempt(locked)) return
+    recordRetry(request.attemptId)
     setBusyKey(entry.idempotencyKey)
     try {
       const receipt = await api.submit(request.attemptId, request.idempotencyKey)

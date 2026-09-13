@@ -9,6 +9,10 @@ import type { InventoryApiPort } from '../../../shared/api/inventory/port'
 import { mockInventoryApi } from '../../../shared/api/inventory/mock'
 import type { OperatorLineView } from '../../../shared/api/inventory/models'
 import {
+  __resetTelemetryForTests,
+  getAttemptTelemetry,
+} from '../../../shared/lib/telemetry/telemetry'
+import {
   buildConfirmChange,
   getNextPendingIndex,
   getPendingIdentities,
@@ -107,6 +111,7 @@ describe('guided-capture pure helpers (F3-PR2)', () => {
 
 describe('useGuidedCapture hook (F3-PR2)', () => {
   it('guided starts at the first pending line and auto-advances on save', async () => {
+    __resetTelemetryForTests()
     await mockInventoryApi.resetDemo()
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
     // Two pending lines so the advance has somewhere to go.
@@ -127,6 +132,11 @@ describe('useGuidedCapture hook (F3-PR2)', () => {
       result.current.selectLine('SKU-001')
     })
     expect(result.current.current?.code).toBe('SKU-001')
+    // Focus-to-save timing joins the attempt's telemetry aggregate — never
+    // blocking, never a raw log the caller must reduce themselves.
+    const telemetry = getAttemptTelemetry(attempt.id)
+    expect(telemetry.focusToSave.sampleCount).toBeGreaterThanOrEqual(1)
+    expect(telemetry.focusToSave.medianMs).not.toBeNull()
   })
 
   it('manual starts empty until a line is picked from search', async () => {
@@ -145,7 +155,8 @@ describe('useGuidedCapture hook (F3-PR2)', () => {
     expect(result.current.current?.code).toBe(picked)
   })
 
-  it('blocks unit mismatches inline and excludes them from the batch', async () => {
+  it('blocks unit mismatches inline, excludes them from the batch, and counts the telemetry error', async () => {
+    __resetTelemetryForTests()
     await mockInventoryApi.resetDemo()
     const attempt = await mockInventoryApi.startAttempt('scope-centro', 'guided')
     const saveBatch = vi.fn(mockInventoryApi.saveBatch.bind(mockInventoryApi))
@@ -159,6 +170,7 @@ describe('useGuidedCapture hook (F3-PR2)', () => {
     })
     expect(result.current.fieldError).toBe('unit-mismatch')
     expect(saveBatch).not.toHaveBeenCalled()
+    expect(getAttemptTelemetry(attempt.id).unitErrorCount).toBe(1)
   })
 
   it('holds advisory 422 confirm and resends the identical string with flag', async () => {

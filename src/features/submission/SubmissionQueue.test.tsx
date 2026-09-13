@@ -10,6 +10,10 @@ import type { Receipt } from '../../shared/api/inventory/models'
 import type { InventoryApiPort } from '../../shared/api/inventory/port'
 import type { SubmissionQueueEntry } from '../../shared/lib/submission-queue'
 import {
+  __resetTelemetryForTests,
+  getAttemptTelemetry,
+} from '../../shared/lib/telemetry/telemetry'
+import {
   ReceiptView,
   RetryButton,
   SubmissionQueue,
@@ -144,6 +148,7 @@ describe('SubmissionQueue UI (F4-PR1)', () => {
   })
 
   it('retries with the same Idempotency-Key and announces the receipt', async () => {
+    __resetTelemetryForTests()
     const receipt: Receipt = {
       key: 'retry-key',
       status: 'SUCCEEDED',
@@ -157,6 +162,20 @@ describe('SubmissionQueue UI (F4-PR1)', () => {
     expect(calls).toEqual([{ attemptId: 'att-1', key: 'retry-key' }])
     expect(await screen.findByText('Submission synced.')).toBeInTheDocument()
     expect(await screen.findByText('ERP erp-att-1-v2')).toBeInTheDocument()
+    // Retry telemetry is additive: it never alters the retry outcome above.
+    expect(getAttemptTelemetry('att-1').retryCount).toBe(1)
+  })
+
+  it('counts a retry attempt even when it lands on a fresh conflict, never blocking the flow', async () => {
+    __resetTelemetryForTests()
+    const { api } = stubApi(async () => {
+      throw new HttpError(409, 'IDEMPOTENCY_CONFLICT', 'same key, different body')
+    })
+    const user = userEvent.setup()
+    renderQueue(api, [pendingFailed])
+    await user.click(screen.getByRole('button', { name: 'Retry submit' }))
+    await screen.findByText('Conflict — action needed')
+    expect(getAttemptTelemetry('att-1').retryCount).toBe(1)
   })
 
   it('routes each pending entry to its own key, oldest first', async () => {
