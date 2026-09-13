@@ -29,6 +29,15 @@
       "offlineMessage": "La aplicación sigue disponible y tus cambios se guardan en la fila para sincronizarse cuando vuelva la conexión."
     }
   },
+  "admin": {
+    "unauthorized": "No tiene permisos para acceder al panel de administración.",
+    "nav": {
+      "users": "Usuarios",
+      "warehouses": "Bodegas (admin)",
+      "baseline": "Inventario base",
+      "assignments": "Asignaciones"
+    }
+  },
   "access": {
     "title": "Iniciar sesión",
     "username": "Usuario",

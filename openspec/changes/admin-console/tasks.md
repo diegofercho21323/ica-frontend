@@ -29,11 +29,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 1: Shared Route Gate (PR 1) — spec: admin-users "Admin route gated to demo-admin" (foundation for all four capabilities)
 
-- [ ] 1.1 RED `src/app/RequireAdminRoute.test.tsx`: `demo-admin` renders `<Outlet/>` children; `operator`/`cost-leader` render `RequireRole`'s unauthorized label and children never mount
-- [ ] 1.2 GREEN create `src/app/RequireAdminRoute.tsx` — composes `RequireRole allowedRoles={['demo-admin']}` around `<Outlet/>`, per design (app layer, not `features/admin`, to satisfy `features-must-not-depend-on-other-features`)
-- [ ] 1.3 RED extend `src/app/router.tsx` route test: `/admin` subtree (empty placeholder children) mounts under `RequireAdminRoute` as a sibling of the existing `RequireAuth` layout route
-- [ ] 1.4 GREEN wire the `/admin` child routes (`admin/users`, `admin/warehouses`, `admin/baseline`, `admin/assignments`) in `src/app/router.tsx`, each a stub page from `src/pages/screens.tsx` until its own PR fills it in
-- [ ] 1.5 Add `admin.unauthorized`/nav placeholder keys to `src/app/i18n/es.json`; `npm run test:run`, `npm run typecheck`, `npm run lint`, `npm run fsd` clean; commit `feat(app): admin route gate and empty /admin subtree`
+- [x] 1.1 RED `src/app/RequireAdminRoute.test.tsx`: `demo-admin` renders `<Outlet/>` children; `operator`/`cost-leader` render `RequireRole`'s unauthorized label and children never mount
+- [x] 1.2 GREEN create `src/app/RequireAdminRoute.tsx` — composes `RequireRole allowedRoles={['demo-admin']}` around `<Outlet/>`, per design (app layer, not `features/admin`, to satisfy `features-must-not-depend-on-other-features`)
+- [x] 1.3 RED extend `src/app/router.tsx` route test: `/admin` subtree (empty placeholder children) mounts under `RequireAdminRoute` as a sibling of the existing `RequireAuth` layout route
+- [x] 1.4 GREEN wire the `/admin` child routes (`admin/users`, `admin/warehouses`, `admin/baseline`, `admin/assignments`) in `src/app/router.tsx`, each a stub page from `src/pages/screens.tsx` until its own PR fills it in
+- [x] 1.5 Add `admin.unauthorized`/nav placeholder keys to `src/app/i18n/es.json`; `npm run test:run`, `npm run typecheck`, `npm run lint`, `npm run fsd` clean; commit `feat(app): admin route gate and empty /admin subtree`
 
 ## Phase 2: Admin Users (PR 2) — spec: admin-users (all three requirements)
 

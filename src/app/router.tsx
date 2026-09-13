@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router'
+import type { RouteObject } from 'react-router'
 import {
   LoginPage,
   DashboardPage,
@@ -6,11 +7,18 @@ import {
   CapturePage,
   AttemptCapturePage,
   ReviewPage,
+  AdminUsersPage,
+  AdminWarehousesPage,
+  AdminBaselinePage,
+  AdminAssignmentsPage,
 } from '../pages/screens'
 import { RequireAuth } from '../features/access/RequireAuth'
+import { RequireAdminRoute } from './RequireAdminRoute'
 import { SessionAwareShell } from './SessionAwareShell'
 
-export const router = createBrowserRouter([
+// Exported separately from `router` so tests can feed the same route tree
+// into `createMemoryRouter` instead of the DOM-history `createBrowserRouter`.
+export const routeConfig: RouteObject[] = [
   {
     path: '/',
     element: <SessionAwareShell />,
@@ -27,6 +35,21 @@ export const router = createBrowserRouter([
           { path: 'attempts/:id/review', Component: ReviewPage },
         ],
       },
+      // Sibling of the `RequireAuth`-gated layout route, not nested inside
+      // it: `RequireAdminRoute` is its own gate (admin-console F1-PR1),
+      // wired once at the subtree root rather than per screen.
+      {
+        path: 'admin',
+        Component: RequireAdminRoute,
+        children: [
+          { path: 'users', Component: AdminUsersPage },
+          { path: 'warehouses', Component: AdminWarehousesPage },
+          { path: 'baseline', Component: AdminBaselinePage },
+          { path: 'assignments', Component: AdminAssignmentsPage },
+        ],
+      },
     ],
   },
-])
+]
+
+export const router = createBrowserRouter(routeConfig)

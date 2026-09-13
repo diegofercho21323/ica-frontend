@@ -94,6 +94,39 @@ export function AttemptCapturePage() {
   )
 }
 
+/**
+ * Thin `/admin/*` placeholders (admin-console F1-PR1): the gate and routes
+ * land before their screens do. PR2–PR6 each replace one of these with the
+ * real capability; until then they only prove the subtree is reachable.
+ */
+function AdminPlaceholderPage({ titleKey }: { titleKey: string }) {
+  const { t } = useTranslation()
+  return (
+    <section className="flex flex-col gap-2 pt-2">
+      <Typography.Title level={3} className="!mb-0">
+        {t(titleKey)}
+      </Typography.Title>
+      <Typography.Text type="secondary">{t('app.shellPlaceholder')}</Typography.Text>
+    </section>
+  )
+}
+
+export function AdminUsersPage() {
+  return <AdminPlaceholderPage titleKey="admin.nav.users" />
+}
+
+export function AdminWarehousesPage() {
+  return <AdminPlaceholderPage titleKey="admin.nav.warehouses" />
+}
+
+export function AdminBaselinePage() {
+  return <AdminPlaceholderPage titleKey="admin.nav.baseline" />
+}
+
+export function AdminAssignmentsPage() {
+  return <AdminPlaceholderPage titleKey="admin.nav.assignments" />
+}
+
 export function ReviewPage() {
   const { t } = useTranslation()
   const { id } = useParams()
