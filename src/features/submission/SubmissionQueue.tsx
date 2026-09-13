@@ -269,7 +269,7 @@ export function SubmissionQueue({
 
   return (
     <section aria-busy={busyKey !== null} className="flex w-full justify-center">
-      <Card className="flex w-full max-w-2xl flex-col gap-4">
+      <Card variant="borderless" className="flex w-full max-w-2xl flex-col gap-4 shadow-sm">
         <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
           <SyncOutlined aria-hidden />
           {strings.titleLabel}
@@ -290,7 +290,7 @@ export function SubmissionQueue({
               return (
                 <li key={`${sessionId}:${entry.attemptId}:${entry.idempotencyKey}`}>
                   {index > 0 ? <Divider className="!my-0" /> : null}
-                  <div className="border-outline flex w-full flex-col gap-2 rounded-lg border border-solid p-4 shadow-sm">
+                  <div className="flex w-full flex-col gap-2 py-3">
                     <Status
                       tone={TONE_FOR_STATE[entry.state]}
                       label={strings.stateLabels[entry.state]}

@@ -36,7 +36,7 @@ export function LoginForm() {
       aria-labelledby="access-title"
       className="flex justify-center pt-6 sm:pt-12"
     >
-      <Card className="w-full max-w-md">
+      <Card variant="borderless" className="w-full max-w-md shadow-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <span className="bg-primary flex h-11 w-11 items-center justify-center rounded-full text-lg text-white">
             <LockOutlined aria-hidden />

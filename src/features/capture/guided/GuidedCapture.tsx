@@ -1,6 +1,7 @@
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
+  ExclamationCircleOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
 import { Card } from 'antd'
@@ -159,7 +160,7 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
       onKeyDown={onSectionKeyDown}
       className="flex w-full justify-center"
     >
-      <Card className="flex w-full max-w-2xl flex-col gap-4">
+      <Card variant="borderless" className="flex w-full max-w-2xl flex-col gap-4 shadow-sm">
       <Progress
         value={progress.counted}
         max={Math.max(progress.total, 1)}
@@ -252,9 +253,10 @@ export function GuidedCapture({ attemptId, mode, strings }: GuidedCaptureProps) 
           role="alertdialog"
           aria-label={strings.confirmTitle}
           aria-describedby={confirmBodyId}
-          className="border-warning bg-layout flex w-full flex-col gap-2 rounded-lg border border-solid p-4"
+          className="bg-layout flex w-full flex-col gap-2 rounded-lg p-4"
         >
-          <p id={confirmBodyId} className="m-0">
+          <p id={confirmBodyId} className="text-warning m-0 flex items-center gap-2 font-medium">
+            <ExclamationCircleOutlined aria-hidden />
             {strings.confirmBody(guided.pendingConfirm.quantity)}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">

@@ -52,7 +52,7 @@ export function ReviewScreen({ attemptId }: { attemptId: string }) {
   if (isPending) {
     return (
       <section aria-busy="true" className="flex w-full justify-center">
-        <Card className="flex w-full max-w-3xl flex-col gap-4">
+        <Card variant="borderless" className="flex w-full max-w-3xl flex-col gap-4 shadow-sm">
           <Typography.Title level={3} className="!mb-0">
             {t('review.title')}
           </Typography.Title>
@@ -65,7 +65,7 @@ export function ReviewScreen({ attemptId }: { attemptId: string }) {
   if (isError) {
     return (
       <section className="flex w-full justify-center">
-        <Card className="flex w-full max-w-3xl flex-col gap-4">
+        <Card variant="borderless" className="flex w-full max-w-3xl flex-col gap-4 shadow-sm">
           <Typography.Title level={3} className="!mb-0">
             {t('review.title')}
           </Typography.Title>
@@ -79,7 +79,7 @@ export function ReviewScreen({ attemptId }: { attemptId: string }) {
 
   return (
     <section className="flex w-full justify-center">
-      <Card className="flex w-full max-w-3xl flex-col gap-4">
+      <Card variant="borderless" className="flex w-full max-w-3xl flex-col gap-4 shadow-sm">
         <Typography.Title level={3} className="!mb-0 flex items-center gap-2">
           <FileDoneOutlined aria-hidden />
           {t('review.title')}

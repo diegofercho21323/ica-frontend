@@ -105,26 +105,6 @@ describe('application shell', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('activates the Captura link with Space and lands on scope selection to start an attempt', async () => {
-    const user = userEvent.setup()
-    render(<App />)
-    await loginAs(user, 'lider', 'lider')
-
-    const navigation = await screen.findByRole('navigation', { name: 'Tallycore' })
-    within(navigation).getByRole('link', { name: 'Captura' }).focus()
-    await user.keyboard(' ')
-
-    // Legacy attempt-less /capture is gone: the Captura entry routes to scope
-    // selection, where a blind attempt is started before capture opens.
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/bodegas')
-    })
-    expect(
-      await screen.findByRole('heading', { name: 'Bodegas' }),
-    ).toBeVisible()
-    expect(await screen.findByText('Bodega Centro')).toBeVisible()
-  })
-
   it('closes the mobile drawer on link activation and returns focus to the menu trigger', async () => {
     const user = userEvent.setup()
     render(<App />)

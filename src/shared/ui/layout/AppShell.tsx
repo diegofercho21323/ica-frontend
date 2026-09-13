@@ -1,9 +1,4 @@
-import {
-  DashboardOutlined,
-  LoginOutlined,
-  QrcodeOutlined,
-  ShopOutlined,
-} from '@ant-design/icons'
+import { DashboardOutlined, LoginOutlined, ShopOutlined } from '@ant-design/icons'
 import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
@@ -14,11 +9,12 @@ const HEADER_HEIGHT = 64
 
 function pathnameToKey(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'dashboard'
+  // Capture and review/recount nest under the Bodegas flow (choosing a
+  // warehouse starts an attempt and opens capture directly) and have no
+  // nav item of their own — 'warehouses' stays the closest active section.
   if (pathname.startsWith('/bodegas')) return 'warehouses'
-  if (pathname.startsWith('/capture')) return 'capture'
-  // Review/recount nest under the capture flow but have no nav item of
-  // their own — no menu key means no item gets falsely highlighted.
-  if (pathname.startsWith('/attempts')) return 'review'
+  if (pathname.startsWith('/capture')) return 'warehouses'
+  if (pathname.startsWith('/attempts')) return 'warehouses'
   return 'login'
 }
 
@@ -71,13 +67,12 @@ export function AppShell({
   // Post-login navigation: without a session only the brand and the login
   // entry are visible. The session itself lives in features/access, which
   // shared/ must not import (FSD), so the app shell receives it as a prop
-  // from an app-layer wrapper (see src/app/router.tsx).
+  // from an app-layer wrapper (see src/app/router.tsx). "Iniciar sesión"
+  // and "Captura" are deliberately absent once authenticated: logout is
+  // its own header action, and Bodegas already starts capture on choosing
+  // a warehouse — a standalone Captura destination is a dead end (nothing
+  // to pick without a warehouse first) and pure nav clutter.
   const authedItems = [
-    {
-      key: 'login',
-      icon: <LoginOutlined aria-hidden />,
-      label: navLink('login', '/login', t('app.login')),
-    },
     {
       key: 'dashboard',
       icon: <DashboardOutlined aria-hidden />,
@@ -87,11 +82,6 @@ export function AppShell({
       key: 'warehouses',
       icon: <ShopOutlined aria-hidden />,
       label: navLink('warehouses', '/bodegas', t('app.warehouses')),
-    },
-    {
-      key: 'capture',
-      icon: <QrcodeOutlined aria-hidden />,
-      label: navLink('capture', '/capture', t('app.capture')),
     },
   ]
   const anonItems = [

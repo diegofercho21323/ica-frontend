@@ -14,13 +14,13 @@ export type KpiCardProps = {
 export function KpiCard({ label, value, unit, loading = false }: KpiCardProps) {
   if (loading) {
     return (
-      <Card aria-busy="true">
+      <Card variant="borderless" className="shadow-sm" aria-busy="true">
         <Skeleton active paragraph={false} title={{ width: '60%' }} />
       </Card>
     )
   }
   return (
-    <Card>
+    <Card variant="borderless" className="shadow-sm">
       <Statistic title={label} value={value} suffix={unit} />
     </Card>
   )

@@ -64,9 +64,14 @@ function expectAuthenticatedNav(nav: HTMLElement) {
   expect(
     within(nav).getByRole('link', { name: i18n.t('app.warehouses') }),
   ).toBeVisible()
+  // "Iniciar sesión" and "Captura" are gone once authenticated: logout is
+  // its own header action, and Bodegas already starts capture directly.
   expect(
-    within(nav).getByRole('link', { name: i18n.t('app.capture') }),
-  ).toBeVisible()
+    within(nav).queryByRole('link', { name: i18n.t('app.login') }),
+  ).not.toBeInTheDocument()
+  expect(
+    within(nav).queryByRole('link', { name: i18n.t('app.capture') }),
+  ).not.toBeInTheDocument()
 }
 
 describe('app shell auth-gated navigation (F6-P1)', () => {
@@ -94,7 +99,7 @@ describe('app shell auth-gated navigation (F6-P1)', () => {
     expectAnonymousNav(drawer)
   })
 
-  it('authenticated shell reveals Panel, Bodegas, and Captura on rail and drawer', async () => {
+  it('authenticated shell reveals Panel and Bodegas (no Iniciar sesión, no Captura) on rail and drawer', async () => {
     const user = userEvent.setup()
     render(<App />)
     await loginAs(user, 'operador', 'operador')

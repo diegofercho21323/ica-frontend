@@ -56,7 +56,7 @@ export function RecountScreen({
   if (!canRecount) {
     return (
       <section className="flex w-full justify-center">
-        <Card className="flex w-full max-w-2xl flex-col gap-4">
+        <Card variant="borderless" className="flex w-full max-w-2xl flex-col gap-4 shadow-sm">
           <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
             <TeamOutlined aria-hidden />
             {strings.titleLabel}
@@ -90,13 +90,13 @@ export function RecountScreen({
 
   return (
     <section aria-busy={isRecounting} className="flex w-full justify-center">
-      <Card className="flex w-full max-w-2xl flex-col gap-4">
+      <Card variant="borderless" className="flex w-full max-w-2xl flex-col gap-4 shadow-sm">
         <Typography.Title level={4} className="!mb-0 flex items-center gap-2">
           <TeamOutlined aria-hidden />
           {strings.titleLabel}
         </Typography.Title>
         <p className="text-on-surface-secondary m-0 text-sm">{strings.selectHintLabel}</p>
-        <ul className="border-outline bg-layout m-0 flex list-none flex-col gap-1 rounded-lg border border-solid p-2">
+        <ul className="bg-layout m-0 flex list-none flex-col gap-1 rounded-lg p-2">
           {lines.map((line) => (
             <li key={line.code} className="flex items-center gap-2 rounded-md px-2 py-1.5">
               <Checkbox

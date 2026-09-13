@@ -100,7 +100,11 @@ describe('BodegasList attempt entry', () => {
       'No se pudo iniciar el intento. Reintente.',
     )
 
-    await user.click(screen.getByRole('radio', { name: 'Manual' }))
+    // Radio.Group renders as a segmented button (optionType="button"): the
+    // native input is visually hidden (pointer-events: none) and the
+    // styled label is the actual clickable surface — click that instead.
+    const manualRadio = screen.getByRole('radio', { name: 'Manual' })
+    await user.click(manualRadio.closest('label') ?? manualRadio)
     await user.click(screen.getAllByRole('button', { name: 'Iniciar captura' })[1])
 
     await waitFor(() => {

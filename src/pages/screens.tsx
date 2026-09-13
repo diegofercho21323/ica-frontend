@@ -1,4 +1,4 @@
-import { FileDoneOutlined } from '@ant-design/icons'
+import { DashboardOutlined, FileDoneOutlined } from '@ant-design/icons'
 import { Alert, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router'
@@ -26,7 +26,10 @@ export function DashboardPage() {
   const { t } = useTranslation()
   return (
     <section className="flex flex-col gap-4 pt-2">
-      <Typography.Title>{t('app.dashboard')}</Typography.Title>
+      <Typography.Title level={3} className="!mb-0 flex items-center gap-2">
+        <DashboardOutlined aria-hidden />
+        {t('app.dashboard')}
+      </Typography.Title>
       <DashboardKpis />
     </section>
   )
