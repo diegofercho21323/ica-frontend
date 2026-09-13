@@ -20,7 +20,14 @@
     "kpiTotal": "Total de SKUs",
     "kpiCounted": "Contadas",
     "kpiPending": "Pendientes",
-    "kpiProgress": "Avance"
+    "kpiProgress": "Avance",
+    "pwa": {
+      "updateTitle": "Nueva versión disponible",
+      "updateMessage": "Hay una actualización lista para instalarse.",
+      "updateAction": "Actualizar",
+      "offlineTitle": "Trabajando sin conexión",
+      "offlineMessage": "La aplicación sigue disponible y tus cambios se guardan en la fila para sincronizarse cuando vuelva la conexión."
+    }
   },
   "access": {
     "title": "Iniciar sesión",

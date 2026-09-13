@@ -84,8 +84,8 @@ Chain strategy: stacked-to-main
 
 ## Phase F5-PR1: Installable PWA Shell — spec: offline-outbox "Installable PWA shell"
 
-- [ ] 6.1 RED `src/app/pwa/registerSW.test.ts`: `vite-plugin-pwa` `generateSW` precache manifest built, `registerSW` update prompt exposed, cached-route shell renders offline with queued state instead of network error
-- [ ] 6.2 GREEN add `vite-plugin-pwa` dependency, configure `vite.config.ts`, add `src/app/pwa/` register + update-prompt module; commit `feat(pwa): installable offline shell`
+- [x] 6.1 RED `src/app/pwa/registerSW.test.ts`: `vite-plugin-pwa` `generateSW` precache manifest built (via `vite.config.ts` source-scan — the manifest itself is a build artifact, not importable in vitest), `usePwaLifecycle` exposes `needRefresh`/`offlineReady` from `virtual:pwa-register/react`, `PwaStatus` renders an offline-queued notice (not a raw network error) when offline + precached, and a single primary update action when a refresh is pending. Browser-level "actually go offline and reload a cached route" is out of unit-test reach (jsdom has no real Service Worker); confirmed via `npm run build` (workbox `sw.js` + precache manifest generated, 5 entries) as the build-time proof, with real offline-reload left as a documented Playwright `e2e/` gap (see apply-progress).
+- [x] 6.2 GREEN added `vite-plugin-pwa` devDependency; configured `vite.config.ts` (`VitePWA({ registerType: 'prompt', injectRegister: false, manifest, workbox.globPatterns })` — `generateSW` is the plugin default, `injectManifest` never used); added `src/app/pwa/registerSW.tsx` (`usePwaLifecycle` hook + `PwaStatus` Alert/Button update-prompt and offline-notice UI); wired `<PwaStatus />` into `src/app/App.tsx`. commit `feat(pwa): installable offline shell`
 
 ## Phase F5-PR2: Versioned Outbox + Ordered Replay — spec: offline-outbox "Versioned durable outbox"
 
