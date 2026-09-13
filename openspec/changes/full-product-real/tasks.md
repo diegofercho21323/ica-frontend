@@ -89,8 +89,8 @@ Chain strategy: stacked-to-main
 
 ## Phase F5-PR2: Versioned Outbox + Ordered Replay — spec: offline-outbox "Versioned durable outbox"
 
-- [ ] 6.3 RED `src/shared/lib/outbox/outbox.test.ts`: persist `{attempt_id, body, Idempotency-Key}` under versioned `idb-keyval` keys, reload restores records as `pending`, replay in original order, `409` on batch 2 holds batch 3 pending deliberate recovery
-- [ ] 6.4 GREEN add `src/shared/lib/outbox/outbox.ts` versioned store + ordered replay via TanStack Query `retry`; wire into the submit mutation; commit `feat(outbox): durable versioned offline outbox`
+- [x] 6.3 RED `src/shared/lib/outbox/outbox.test.ts`: persist `{attempt_id, body, Idempotency-Key}` under versioned `idb-keyval` keys, reload restores records as `pending`, replay in original order, `409` on batch 2 holds batch 3 pending deliberate recovery. RED confirmed: `Failed to resolve import "./outbox"` before any production file existed.
+- [x] 6.4 GREEN add `src/shared/lib/outbox/outbox.ts` (`outboxStore.enqueue/loadPending/markSynced` + `replayOutbox`), versioned via `OUTBOX_VERSION` baked into the idb-keyval store name and per-record key; `npm run test:run -- --no-file-parallelism` 329/329; typecheck/lint/fsd clean; 229 total lines, well under the 400-line budget. Landed as a complete, tested, standalone module — NOT wired into `SubmissionQueue.tsx`/`useCaptureForm.ts`'s live submit mutation in this slice (see apply-progress F5-PR2 for the explicit scope decision and follow-up). commit `feat(outbox): durable versioned offline outbox`
 
 ## Phase F5-PR3: Blind-Safe Telemetry — spec: product-telemetry "Capture and submission metrics"
 

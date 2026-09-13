@@ -1256,3 +1256,165 @@ F3-PR2) to settle without a maintainer reset.
 
 - F5-PR2 (6.3–6.4) versioned outbox + ordered replay, F5-PR3 (6.5–6.6)
   blind-safe telemetry — untouched.
+
+---
+
+## Work Unit: F5-PR2 (tasks 6.3 + 6.4) — Versioned outbox + ordered replay
+
+Status: **implementation complete, all evidence green.**
+Skills loaded: `frontend-design` (paths-injected).
+Commit style: single commit (code + tests + `tasks.md` + this file).
+
+### Scope decision — standalone module, not wired into the live submit mutation
+
+Per the assigning instruction's explicit fallback, this slice lands
+`src/shared/lib/outbox/outbox.ts` as a complete, independently tested module
+and does **not** wire it into `src/features/submission/SubmissionQueue.tsx`
+or `src/features/capture/useCaptureForm.ts`'s live submit path. Reasons:
+
+1. `SubmissionQueue.tsx`'s existing `handleRetry`/`handleResolveConflict`
+   already own an in-memory `SubmissionQueueEntry[]` state model with its own
+   fully-green test suite (25/25, F4-PR1). Wiring the outbox underneath it
+   for real would mean either (a) making the queue's initial state hydrate
+   from `outboxStore.loadPending()` on mount, or (b) having every
+   `api.submit()`/`saveBatch()` call site also `enqueue()` before attempting
+   network I/O — both are legitimate integration points, but each touches
+   already-green F4-PR1/F1 production code and tests outside this slice's
+   named scope (tasks.md's own rollback boundary for this unit is
+   `src/shared/lib/outbox/` only).
+2. The assigning instruction explicitly allows landing the module standalone
+   "if wiring it fully into the live submit path risks touching too much
+   surface" and asks for honesty over silently claiming full integration.
+3. `outboxStore`/`replayOutbox` are written so a follow-up wiring slice is
+   mechanical: `SubmissionQueue`'s mount effect would call
+   `outboxStore.loadPending()` to seed `initialEntries`, and
+   `handleRetry`/`handleResolveConflict` would call `outboxStore.enqueue(...)`
+   before `api.submit(...)` and `outboxStore.markSynced(...)` after a
+   successful receipt — no shape mismatch with `SubmissionQueueEntry`
+   (`attempt_id`/`Idempotency-Key` map directly to `attemptId`/
+   `idempotencyKey`).
+
+**Honest status**: `outbox.ts` is fully implemented and tested per the spec's
+two scenarios (reload restores `pending`, 409 holds later batches) but is
+**not yet reachable from the live submit mutation** — no `import` of
+`outboxStore`/`replayOutbox` exists outside its own test file. This is a
+tracked follow-up, not a silent gap.
+
+### Approach
+
+- **`outboxStore`** (`enqueue`/`loadPending`/`markSynced`): persists each
+  offline mutation as `{attempt_id, body, 'Idempotency-Key', state,
+  queuedAt}` under `createStore('ica-outbox-v${OUTBOX_VERSION}', 'records')`
+  (same `createStore(dbName, storeName)` convention as `persistence.ts`/
+  `auth-token.ts`), keyed per-record as
+  `outbox:v${OUTBOX_VERSION}:<attemptId>:<idempotencyKey>`. `OUTBOX_VERSION`
+  is baked into both the store name and the key prefix so a future breaking
+  schema change starts a fresh store instead of misreading old records —
+  this is the "versioned" requirement from the spec/design.
+- **`loadPending()`** reads the durable store fresh via idb-keyval's
+  `entries()`, filters `state === 'pending'`, sorts by `queuedAt` ascending.
+  Deliberately holds **no in-memory queue** inside the module itself — this
+  is what proves "reload restores pending work": the only source of truth is
+  what idb-keyval actually persisted, matching `orderPendingForReplay`'s
+  existing oldest-first convention in `submission-queue.ts` (reused the same
+  sort-by-timestamp shape rather than inventing a new ordering scheme).
+- **`replayOutbox(records, submit)`**: sorts defensively by `queuedAt`, then
+  awaits `submit()` sequentially. A `HttpError` with `status === 409` stops
+  the line immediately: everything already synced stays in `synced`,
+  everything not yet attempted is returned in `held` untouched, and the
+  conflicting record is reported in `conflicted` — mirroring the existing
+  "409 never auto-retries" rule from `submission-queue.ts`'s
+  `isAutoRetryBlocked`/`authorizeReplacementKey`. Any other error (e.g.
+  network failure) propagates instead of being swallowed, so the caller's
+  own TanStack Query `retry` policy decides what happens next — `replayOutbox`
+  itself only owns the 409-stops-the-line rule, not general retry policy.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 6.3/6.4 `outboxStore` | `src/shared/lib/outbox/outbox.test.ts` | Unit (mocked `idb-keyval`) | N/A (new) | ✅ `Failed to resolve import "./outbox"` — 0 tests ran | ✅ 5/5 pass | ✅ persist-shape case + reload-restores-pending case | ➖ minimal, no extraction needed |
+| 6.3/6.4 `replayOutbox` ordering | same file | Unit (pure function) | N/A (new) | ✅ same module-unresolved RED | ✅ passes as part of the 5 | ✅ 3-batch ascending-order case, independent of the persist tests | ➖ none needed |
+| 6.3/6.4 `replayOutbox` 409 | same file | Unit (pure function) | N/A (new) | ✅ same module-unresolved RED | ✅ passes as part of the 5 | ✅ 409-stops-the-line case (asserts `submit` called exactly twice, batch 3 never attempted) + separate non-409-propagates case (proves 409 is the *only* stopping rule, not "any error") | ➖ none needed |
+
+- **Approval tests**: none — `src/shared/lib/outbox/` is entirely new.
+- **Pure functions created**: `replayOutbox` (1); `outboxStore`'s three
+  methods are necessarily async/effectful (idb-keyval I/O).
+- Triangulation not skipped: the 409 case and the plain-network-failure case
+  are two separate `it()` blocks specifically so a "catch everything as a
+  conflict" fake-it implementation could not pass both — an early draft
+  attempt worth noting here would have needed real `instanceof HttpError &&
+  status === 409` discrimination, which is exactly what the 5th test
+  exercises.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command + result | `npx vitest run src/shared/lib/outbox/outbox.test.ts --no-file-parallelism` → **5/5 pass, 1 file** (was: module unresolved, 0 tests at RED) |
+| Full suite | `npm run test:run` hit the same known flaky 5s timeout in `tests/app.smoke.test.tsx`'s keyboard-login test under parallel load documented since F3-PR3/F3-PR4/F4-PR2 (328/329, unrelated file untouched by this slice); `npm run test:run -- --no-file-parallelism` → **329/329 pass, 54 files** clean (baseline 324/324, 53 files; +5 new tests, +1 file) |
+| Typecheck | `npm run typecheck` → exit 0, clean |
+| Lint | `npm run lint` → exit 0, clean |
+| FSD | `npm run fsd` → no violations (137 modules, 571 deps) |
+| Runtime harness | N/A — pure module against a mocked `idb-keyval` (same technique as `persistence.test.ts`/`auth-token.ts`'s sibling tests); no live IndexedDB/network boundary in this repo's test environment. The mocked-store unit tests are the full runtime surface for this slice; a real-IndexedDB/offline browser proof is deferred to the same documented Playwright `e2e/` gap as F5-PR1's PWA shell. |
+| Rollback boundary | Delete `src/shared/lib/outbox/{outbox.ts,outbox.test.ts}` and revert the `tasks.md`/`apply-progress.md` edits in this commit. No existing submission-queue, capture, or routing file touched. |
+
+### Files changed
+
+| File | Action | What |
+|------|--------|------|
+| `src/shared/lib/outbox/outbox.ts` | Created | `outboxStore` (`enqueue`/`loadPending`/`markSynced`) + `replayOutbox`; versioned idb-keyval store + ordered replay with 409-stops-the-line |
+| `src/shared/lib/outbox/outbox.test.ts` | Created | 5 tests: persist shape, reload-restores-pending, ordered replay, 409 holds later batches, non-409 propagates |
+| `openspec/changes/full-product-real/tasks.md` | Modified | 6.3 + 6.4 `[x]` with evidence and the explicit standalone-module scope note |
+| `openspec/changes/full-product-real/apply-progress.md` | Modified | this section |
+
+### Deviations from design / tasks.md
+
+- Task 6.4 named "wire into the submit mutation" as part of its GREEN scope.
+  This slice does **not** perform that wiring — see "Scope decision" above
+  for the explicit reasoning and the concrete follow-up integration points
+  (`SubmissionQueue.tsx` mount hydration + `handleRetry`/
+  `handleResolveConflict` enqueue/markSynced calls). This is a real,
+  documented scope narrowing, not a silent omission: both spec scenarios
+  ("Reload restores pending work", "Ordered replay, 409 stops the line") are
+  fully implemented and tested at the module level.
+- `replayOutbox` does not itself use TanStack Query's `retry` option (design:
+  "ordered replay via TanStack Query `retry` semantics") — it is a plain
+  async function so it can be unit-tested deterministically without a Query
+  client harness. It is written to be the function a `useMutation({ retry })`
+  caller would invoke per pending batch once wired; the Query-level `retry`
+  wiring itself is part of the same deferred follow-up as the submit-mutation
+  wiring above.
+- `OutboxRecord` has no explicit `attemptId`-shaped duplicate of
+  `attempt_id`/`Idempotency-Key` — the record shape matches the spec's exact
+  wire-format field names (`attempt_id`, `body`, `Idempotency-Key`) rather
+  than this repo's usual camelCase convention (contrast
+  `SubmissionQueueEntry.attemptId`/`idempotencyKey`), because the spec
+  explicitly names those exact fields as the persisted shape.
+
+### Issues found
+
+- None. The `Failed to resolve import "./outbox"` RED failure was confirmed
+  before any production edit (Strict TDD Law 1).
+
+### Native attempt ledger
+
+`gentle-ai sdd-attempt acquire --work-unit "F5-PR2 versioned outbox + ordered
+replay" --max-attempts 3 --max-changed-lines 400` → `state: proceed`, token
+`sha256:01f62070a945fa46240f4479a100efef60616f75d0f88a23d9d23261089abd40`.
+Settle to be run after this commit lands, per the standard sequence; if it
+returns `blocked/maintainer_decision` (the same base-drift category
+documented for every prior work unit in this file except F3-PR2/F5-PR1),
+that is a ledger bookkeeping condition, not a code failure — the real, green
+verification evidence above (329/329, typecheck/lint/fsd clean, 229 authored
+lines well under the 400-line budget) is the source of truth for this work
+unit's completion.
+
+### Remaining tasks (out of scope for this work unit)
+
+- F5-PR3 (6.5–6.6) blind-safe telemetry — untouched.
+- Follow-up (not yet a tasks.md line): wire `outboxStore`/`replayOutbox` into
+  `SubmissionQueue.tsx`'s mount hydration and
+  `handleRetry`/`handleResolveConflict`, and into `useCaptureForm.ts`'s
+  `saveBatch` call site, so offline-queued captures actually persist across
+  a reload in the live app, not just in this module's own tests.
