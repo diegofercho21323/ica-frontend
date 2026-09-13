@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "Tallycore",
+    "byDucore": "By Ducore",
     "description": "Captura ciega de inventario",
     "foundation": "La base de la aplicación está lista.",
     "demoNotice": "Demostración local",

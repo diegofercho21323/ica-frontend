@@ -9,6 +9,7 @@ import { tokens } from './tokens'
 export const theme: ThemeConfig = {
   token: {
     colorPrimary: tokens.colorPrimary,
+    colorPrimaryHover: tokens.colorPrimaryHover,
     colorBgLayout: tokens.colorBgLayout,
     colorBgContainer: tokens.colorBgContainer,
     colorText: tokens.colorText,
@@ -20,15 +21,26 @@ export const theme: ThemeConfig = {
     borderRadius: tokens.borderRadius,
     fontFamily: tokens.fontFamily,
     fontSize: tokens.fontSize,
+    boxShadow: tokens.boxShadow,
+    boxShadowSecondary: tokens.boxShadowSecondary,
+    boxShadowTertiary: tokens.boxShadowTertiary,
   },
   components: {
     Layout: {
       headerBg: tokens.colorBgContainer,
       headerColor: tokens.colorText,
       headerHeight: 64,
-      siderBg: tokens.colorBgContainer,
-      lightSiderBg: tokens.colorBgContainer,
+      siderBg: tokens.colorBgLayout,
+      lightSiderBg: tokens.colorBgLayout,
       bodyBg: tokens.colorBgLayout,
+    },
+    Card: {
+      boxShadowTertiary: tokens.boxShadowTertiary,
+    },
+    Menu: {
+      itemSelectedBg: tokens.colorPrimary,
+      itemSelectedColor: tokens.colorBgContainer,
+      itemBorderRadius: tokens.borderRadius,
     },
   },
 }

@@ -53,17 +53,17 @@ describe('visual shell base', () => {
   })
   it('resolves Tallycore light tokens from ThemeConfig with no hardcoded brand in shell', () => {
     expect(tokens.colorPrimary).toBe('#0B5CD6')
-    expect(tokens.borderRadius).toBe(6)
+    expect(tokens.borderRadius).toBe(8)
     expect(tokens.fontFamily).toMatch(/inter/i)
     expect(tokens.colorBgContainer).toBe('#FFFFFF')
     const seed = theme.token ?? {}
     expect(seed.colorPrimary).toBe('#0B5CD6')
-    expect(seed.borderRadius).toBe(6)
+    expect(seed.borderRadius).toBe(8)
     expect(String(seed.fontFamily)).toMatch(/inter/i)
     const layout = theme.components?.Layout ?? {}
     expect(layout.headerBg).toBe(tokens.colorBgContainer)
-    expect(layout.siderBg).toBe(tokens.colorBgContainer)
-    expect(layout.lightSiderBg).toBe(tokens.colorBgContainer)
+    expect(layout.siderBg).toBe(tokens.colorBgLayout)
+    expect(layout.lightSiderBg).toBe(tokens.colorBgLayout)
     expect(layout.bodyBg).toBe(tokens.colorBgLayout)
     expect(layout.headerColor).toBe(tokens.colorText)
   })

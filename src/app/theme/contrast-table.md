@@ -12,27 +12,35 @@ Appearance is AAA and explicitly out of scope.
 | AntD token | Value | Note |
 |---|---|---|
 | `colorPrimary` | `#0B5CD6` | spec value, unchanged |
-| `colorBgLayout` | `#F4F6F9` | spec value, unchanged |
+| `colorPrimaryHover` | `#0045A8` | **new** — darker hover/active shade of primary |
+| `colorBgLayout` | `#F0F3FF` | **revised** from `#F4F6F9` — cooler tinted surface (design refresh) |
 | `colorBgContainer` | `#FFFFFF` | spec value, unchanged |
 | `colorText` | `#1A2332` | spec value, unchanged |
 | `colorTextSecondary` | `#5A6B82` | spec value, unchanged |
-| `colorBorder` | `#D9E0EA` | spec value, unchanged (non-text) |
+| `colorBorder` | `#C2C6D6` | **revised** from `#D9E0EA` — more defined separators (non-text) |
 | `colorSuccess` | `#1C8449` | **AA nudge** from spec `#1F8A4C` |
 | `colorWarning` | `#A86400` | **AA nudge** from spec `#B26A00` |
 | `colorError` | `#C0392B` | spec value, unchanged |
-| `borderRadius` | `6` | spec value |
+| `borderRadius` | `8` | **revised** from `6` — one step rounder |
 | `fontFamily` | `Inter, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif` | pinned |
 | `fontSize` | `14` (scale `12 / 14 / 16 / 20 / 24 / 30`) | spec value |
+| `boxShadow` / `boxShadowSecondary` / `boxShadowTertiary` | soft `rgba(19,28,42,*)` shadows | **new** — card/menu/dropdown elevation |
+
+Design-refresh rationale: the shell's sidebar and page background now share
+`colorBgLayout` (previously the sider matched the white `colorBgContainer`),
+giving the layered surface depth of the reference design direction while
+every text/background pair below still proves AA independently.
 
 ## Text / background pairs
 
 | Foreground | Background | Ratio | AA (≥4.5:1) |
 |---|---|---|---|
 | `colorText` `#1A2332` | `colorBgContainer` `#FFFFFF` | 15.78:1 | PASS |
-| `colorText` `#1A2332` | `colorBgLayout` `#F4F6F9` | 14.58:1 | PASS |
+| `colorText` `#1A2332` | `colorBgLayout` `#F0F3FF` | 14.26:1 | PASS |
 | `colorTextSecondary` `#5A6B82` | `colorBgContainer` `#FFFFFF` | 5.44:1 | PASS |
-| `colorTextSecondary` `#5A6B82` | `colorBgLayout` `#F4F6F9` | 5.02:1 | PASS |
+| `colorTextSecondary` `#5A6B82` | `colorBgLayout` `#F0F3FF` | 4.91:1 | PASS |
 | white `#FFFFFF` | `colorPrimary` `#0B5CD6` | 5.97:1 | PASS |
+| white `#FFFFFF` | `colorPrimaryHover` `#0045A8` | 8.69:1 | PASS |
 | white `#FFFFFF` | `colorSuccess` `#1C8449` | 4.72:1 | PASS |
 | white `#FFFFFF` | `colorWarning` `#A86400` | 4.68:1 | PASS |
 | white `#FFFFFF` | `colorError` `#C0392B` | 5.44:1 | PASS |

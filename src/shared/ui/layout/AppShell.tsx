@@ -1,3 +1,9 @@
+import {
+  DashboardOutlined,
+  LoginOutlined,
+  QrcodeOutlined,
+  ShopOutlined,
+} from '@ant-design/icons'
 import { Button, Drawer, Grid, Layout, Menu, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
@@ -64,22 +70,33 @@ export function AppShell({
   // shared/ must not import (FSD), so the app shell receives it as a prop
   // from an app-layer wrapper (see src/app/router.tsx).
   const authedItems = [
-    { key: 'login', label: navLink('login', '/login', t('app.login')) },
+    {
+      key: 'login',
+      icon: <LoginOutlined aria-hidden />,
+      label: navLink('login', '/login', t('app.login')),
+    },
     {
       key: 'dashboard',
+      icon: <DashboardOutlined aria-hidden />,
       label: navLink('dashboard', '/dashboard', t('app.dashboard')),
     },
     {
       key: 'warehouses',
+      icon: <ShopOutlined aria-hidden />,
       label: navLink('warehouses', '/bodegas', t('app.warehouses')),
     },
     {
       key: 'capture',
+      icon: <QrcodeOutlined aria-hidden />,
       label: navLink('capture', '/capture', t('app.capture')),
     },
   ]
   const anonItems = [
-    { key: 'login', label: navLink('login', '/login', t('app.login')) },
+    {
+      key: 'login',
+      icon: <LoginOutlined aria-hidden />,
+      label: navLink('login', '/login', t('app.login')),
+    },
   ]
   const navigation = (onNavigate?: () => void) => (
     <Menu
@@ -92,6 +109,7 @@ export function AppShell({
   return (
     <Layout>
       <Layout.Header
+        className="flex items-center gap-3 px-4"
         style={{
           position: 'sticky',
           top: 0,
@@ -109,8 +127,26 @@ export function AppShell({
             ☰
           </Button>
         )}
-        <Typography.Text>{t('app.title')}</Typography.Text>
-        {headerActions ? <span className="ml-4">{headerActions}</span> : null}
+        <div className="flex flex-1 items-center gap-3">
+          <span
+            className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg font-bold text-white"
+            aria-hidden
+          >
+            T
+          </span>
+          <span className="flex flex-col leading-none">
+            <Typography.Text strong className="!leading-tight">
+              {t('app.title')}
+            </Typography.Text>
+            <Typography.Text
+              type="secondary"
+              className="!text-[11px] uppercase tracking-wider"
+            >
+              {t('app.byDucore')}
+            </Typography.Text>
+          </span>
+        </div>
+        {headerActions ?? null}
       </Layout.Header>
       <Drawer
         open={open}

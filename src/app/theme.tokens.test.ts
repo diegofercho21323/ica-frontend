@@ -15,15 +15,16 @@ const repoRoot = join(here, '..', '..')
  */
 const SPEC = {
   colorPrimary: '#0B5CD6',
-  colorBgLayout: '#F4F6F9',
+  colorPrimaryHover: '#0045A8',
+  colorBgLayout: '#F0F3FF',
   colorBgContainer: '#FFFFFF',
   colorText: '#1A2332',
   colorTextSecondary: '#5A6B82',
-  colorBorder: '#D9E0EA',
+  colorBorder: '#C2C6D6',
   colorSuccess: '#1C8449', // spec #1F8A4C nudged for AA (white text 4.5:1)
   colorWarning: '#A86400', // spec #B26A00 nudged for AA (white text 4.5:1)
   colorError: '#C0392B',
-  borderRadius: 6,
+  borderRadius: 8,
 } as const
 
 const FONT_FAMILY =
@@ -92,6 +93,7 @@ describe('Tallycore theme tokens (F3-PR1)', () => {
   it('resolves every semantic token through the AntD ConfigProvider theme', () => {
     const token = theme.token ?? {}
     expect(token.colorPrimary).toBe(SPEC.colorPrimary)
+    expect(token.colorPrimaryHover).toBe(SPEC.colorPrimaryHover)
     expect(token.colorBgLayout).toBe(SPEC.colorBgLayout)
     expect(token.colorBgContainer).toBe(SPEC.colorBgContainer)
     expect(token.colorText).toBe(SPEC.colorText)
@@ -109,7 +111,7 @@ describe('Tallycore theme tokens (F3-PR1)', () => {
     const layout = theme.components?.Layout ?? {}
     expect(layout.bodyBg).toBe(SPEC.colorBgLayout)
     expect(layout.headerBg).toBe(SPEC.colorBgContainer)
-    expect(layout.siderBg).toBe(SPEC.colorBgContainer)
+    expect(layout.siderBg).toBe(SPEC.colorBgLayout)
     expect(layout.headerColor).toBe(SPEC.colorText)
   })
 
@@ -133,6 +135,7 @@ describe('Tallycore theme tokens (F3-PR1)', () => {
     ['text-secondary on surface', SPEC.colorTextSecondary, SPEC.colorBgContainer],
     ['text-secondary on layout', SPEC.colorTextSecondary, SPEC.colorBgLayout],
     ['white on primary', WHITE, SPEC.colorPrimary],
+    ['white on primary hover', WHITE, SPEC.colorPrimaryHover],
     ['white on success', WHITE, SPEC.colorSuccess],
     ['white on warning', WHITE, SPEC.colorWarning],
     ['white on error', WHITE, SPEC.colorError],

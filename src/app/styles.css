@@ -1,1 +1,25 @@
 @import 'tailwindcss';
+
+/*
+ * Tailwind utility mirror of the Tallycore brand tokens in `tokens.ts`.
+ *
+ * These values MUST stay in sync with `src/app/tokens.ts` (the single
+ * source of truth enforced by `src/app/theme.tokens.test.ts`'s static
+ * scan). This file is CSS, outside that scan's `.ts`/`.tsx` scope, so it
+ * is the one place besides `tokens.ts` allowed to spell the brand hex —
+ * it exists only to expose them as `bg-primary`, `text-on-surface`, etc.
+ * Tailwind utility classes for markup that cannot import `tokens.ts`
+ * across an FSD layer boundary (e.g. `shared/`).
+ */
+@theme {
+  --color-primary: #0b5cd6;
+  --color-primary-hover: #0045a8;
+  --color-bg-layout: #f0f3ff;
+  --color-surface: #ffffff;
+  --color-on-surface: #1a2332;
+  --color-on-surface-secondary: #5a6b82;
+  --color-outline: #c2c6d6;
+  --color-success: #1c8449;
+  --color-warning: #a86400;
+  --color-error: #c0392b;
+}

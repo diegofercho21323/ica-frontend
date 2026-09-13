@@ -1,4 +1,5 @@
-import { Alert, Button, Form, Input, Typography } from 'antd'
+import { LockOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from './SessionContext'
@@ -31,46 +32,62 @@ export function LoginForm() {
   }
 
   return (
-    <section aria-labelledby="access-title">
-      <Typography.Title id="access-title" level={2}>
-        {t('access.title')}
-      </Typography.Title>
-      <Form layout="vertical" onFinish={() => void submit()}>
-        <Form.Item
-          label={t('access.username')}
-          htmlFor="access-username"
-          validateStatus={errors.username ? 'error' : undefined}
-          help={errors.username}
-        >
-          <Input
-            id="access-username"
-            autoComplete="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </Form.Item>
-        <Form.Item
-          label={t('access.password')}
-          htmlFor="access-password"
-          validateStatus={errors.password ? 'error' : undefined}
-          help={errors.password}
-        >
-          <Input.Password
-            id="access-password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </Form.Item>
-        {errors.form ? (
-          <Alert role="alert" type="error" message={errors.form} className="mb-4" />
-        ) : null}
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={pending}>
-            {t('access.submit')}
-          </Button>
-        </Form.Item>
-      </Form>
+    <section
+      aria-labelledby="access-title"
+      className="flex justify-center pt-6 sm:pt-12"
+    >
+      <Card className="w-full max-w-md">
+        <div className="mb-6 flex flex-col items-center gap-2 text-center">
+          <span className="bg-primary flex h-11 w-11 items-center justify-center rounded-full text-lg text-white">
+            <LockOutlined aria-hidden />
+          </span>
+          <Typography.Title id="access-title" level={2} className="!mb-0">
+            {t('access.title')}
+          </Typography.Title>
+        </div>
+        <Form layout="vertical" onFinish={() => void submit()}>
+          <Form.Item
+            label={t('access.username')}
+            htmlFor="access-username"
+            validateStatus={errors.username ? 'error' : undefined}
+            help={errors.username}
+          >
+            <Input
+              id="access-username"
+              autoComplete="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('access.password')}
+            htmlFor="access-password"
+            validateStatus={errors.password ? 'error' : undefined}
+            help={errors.password}
+          >
+            <Input.Password
+              id="access-password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </Form.Item>
+          {errors.form ? (
+            <Alert role="alert" type="error" message={errors.form} className="mb-4" />
+          ) : null}
+          <Form.Item className="!mb-0">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={pending}
+              block
+              size="large"
+            >
+              {t('access.submit')}
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
     </section>
   )
 }
