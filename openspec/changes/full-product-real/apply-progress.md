@@ -1402,13 +1402,12 @@ tracked follow-up, not a silent gap.
 `gentle-ai sdd-attempt acquire --work-unit "F5-PR2 versioned outbox + ordered
 replay" --max-attempts 3 --max-changed-lines 400` → `state: proceed`, token
 `sha256:01f62070a945fa46240f4479a100efef60616f75d0f88a23d9d23261089abd40`.
-Settle to be run after this commit lands, per the standard sequence; if it
-returns `blocked/maintainer_decision` (the same base-drift category
-documented for every prior work unit in this file except F3-PR2/F5-PR1),
-that is a ledger bookkeeping condition, not a code failure — the real, green
-verification evidence above (329/329, typecheck/lint/fsd clean, 229 authored
-lines well under the 400-line budget) is the source of truth for this work
-unit's completion.
+
+`gentle-ai sdd-attempt settle --outcome passed --evidence-revision
+sha256:fab1fa35188a6be2345a340755cac9a2dda150bc440c9b773b62a0b82a7071e9`
+(sha256 of git HEAD `2589c3f`) → **`state: complete`**. No
+`maintainer_decision` block — third clean settle in this file (after
+F3-PR2, F5-PR1), objective was current when this attempt was acquired.
 
 ### Remaining tasks (out of scope for this work unit)
 
