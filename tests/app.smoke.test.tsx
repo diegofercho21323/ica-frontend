@@ -63,7 +63,7 @@ describe('application shell', () => {
     ).toBeVisible()
     await loginAs(user, 'operador', 'operador')
     await user.click(
-      within(await screen.findByRole('navigation', { name: 'ICA' })).getByRole('link', {
+      within(await screen.findByRole('navigation', { name: 'Tallycore' })).getByRole('link', {
         name: 'Panel principal',
       }),
     )
@@ -75,7 +75,7 @@ describe('application shell', () => {
     expect(screen.getByText(i18n.t('app.kpiPending'))).toBeVisible()
     expect(screen.getByText(i18n.t('app.kpiProgress'))).toBeVisible()
 
-    const navigation = await screen.findByRole('navigation', { name: 'ICA' })
+    const navigation = await screen.findByRole('navigation', { name: 'Tallycore' })
     expect(screen.getByRole('main')).toBeVisible()
 
     expect(window.location.pathname).toBe('/dashboard')
@@ -110,7 +110,7 @@ describe('application shell', () => {
     render(<App />)
     await loginAs(user, 'lider', 'lider')
 
-    const navigation = await screen.findByRole('navigation', { name: 'ICA' })
+    const navigation = await screen.findByRole('navigation', { name: 'Tallycore' })
     within(navigation).getByRole('link', { name: 'Captura' }).focus()
     await user.keyboard(' ')
 
@@ -130,7 +130,7 @@ describe('application shell', () => {
     render(<App />)
     await loginAs(user, 'admin', 'admin')
 
-    const trigger = screen.getByRole('button', { name: 'ICA' })
+    const trigger = screen.getByRole('button', { name: 'Tallycore' })
     await user.click(trigger)
     const drawer = await screen.findByRole('dialog')
     within(drawer).getByRole('link', { name: 'Panel principal' }).focus()
@@ -154,7 +154,7 @@ describe('application shell', () => {
     render(<App />)
     await loginAs(user, 'operador', 'operador')
 
-    const navigation = await screen.findByRole('navigation', { name: 'ICA' })
+    const navigation = await screen.findByRole('navigation', { name: 'Tallycore' })
     await user.click(within(navigation).getByRole('link', { name: 'Bodegas' }))
 
     expect(window.location.pathname).toBe('/bodegas')
